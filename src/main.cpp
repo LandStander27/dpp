@@ -201,15 +201,13 @@ int main(int argc, char** argv) {
 	std::cout << output.str() << std::endl;
 
 	std::string name = input_file.find_last_of(".") != std::string::npos ? input_file.substr(0, input_file.find_last_of(".")) : input_file;
-	std::stringstream name_cpp;
-	name_cpp << name << ".cpp";
 
-	std::ofstream file_out = std::ofstream(name_cpp.str());
+	std::ofstream file_out = std::ofstream(name + ".cpp");
 	file_out << output.str();
 	file_out.close();
 
 	pid_t pid;
-	std::vector<std::string> gcc_args = { "g++", name_cpp.str(), "-o", name };
+	std::vector<std::string> gcc_args = { "g++", name + ".cpp", "-o", name };
 
 	char** gcc_argsc = (char**)malloc(sizeof(char*)*(gcc_args.size()+1));
 	for (int i = 0; i < gcc_args.size(); i++) {
@@ -222,8 +220,10 @@ int main(int argc, char** argv) {
 
 	free((void*)gcc_argsc);
 
-	std::remove(name_cpp.str().c_str());
+	std::remove((name + ".cpp").c_str());
 
 	file.close();
+
+	return 0;
 
 }
