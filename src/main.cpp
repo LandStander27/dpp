@@ -2,92 +2,7 @@
 
 extern char **environ;
 
-std::string format_println(std::string org) {
-
-	std::stringstream ss;
-	ss << "std::cout << ";
-
-	int string_start = org.find("(")+1;
-	// for (int i = 0; i < org.size(); i++) {
-	// 	if (org[i] == '(') {
-	// 		string_start = i+1;
-	// 		break;
-	// 	}
-	// }
-
-	for (int i = string_start; i < org.size()-3; i++) {
-		if (org[i] == '{') {
-			int end = org.find('}', i);
-			ss << "\" << " << org.substr(i+1, end-i-1) << " << \"";
-			i = end;
-			continue;
-		}
-		ss << org[i];
-	}
-
-	ss << " << std::endl;";
-
-	return ss.str();
-
-}
-
-std::string format_print(std::string org) {
-
-	std::stringstream ss;
-	ss << "std::cout << ";
-
-	int string_start = org.find("(")+1;
-	// for (int i = 0; i < org.size(); i++) {
-	// 	if (org[i] == '(') {
-	// 		string_start = i+1;
-	// 		break;
-	// 	}
-	// }
-
-	for (int i = string_start; i < org.size()-3; i++) {
-		if (org[i] == '{') {
-			int end = org.find('}', i);
-			ss << "\" << " << org.substr(i+1, end-i-1) << " << \"";
-			i = end;
-			continue;
-		}
-		ss << org[i];
-	}
-
-	ss << ";";
-
-	return ss.str();
-
-}
-
-std::string format_string_def(std::string org) {
-
-	std::stringstream ss;
-
-	std::string name = org.substr(4, org.find("=")-5);
-	ss << "str " << name << ";\n";
-
-	ss << "{\n";
-
-	int string_start = org.find("\"");
-	ss << "std::stringstream s;\n";
-	ss << "s << ";
-	for (int i = string_start; i < org.size()-2; i++) {
-		if (org[i] == '{') {
-			int end = org.find('}', i);
-			ss << "\" << " << org.substr(i+1, end-i-1) << " << \"";
-			i = end;
-			continue;
-		}
-		ss << org[i];
-	}
-	ss << ";\n" << name << " = s.str();\n}";
-
-	return ss.str();
-
-}
-
-std::string format_string(std::string org) {
+std::optional<std::string> format_string(std::string org) {
 
 	std::stringstream ss;
 
@@ -97,11 +12,17 @@ std::string format_string(std::string org) {
 	ss << "std::stringstream s; ";
 	ss << "s << ";
 	for (int i = string_start; i < org.size()-2; i++) {
-		if (org[i] == '{') {
+		if (org[i] == '{' && (i != org.size()-3 ? org[i+1] != '{' : true)) {
 			int end = org.find('}', i);
+			if (end == std::string::npos) {
+				return std::nullopt;
+			}
+
 			ss << "\" << " << org.substr(i+1, end-i-1) << " << \"";
 			i = end;
 			continue;
+		} else if (org[i] == '{') {
+			i += 1;
 		}
 		ss << org[i];
 	}
@@ -159,13 +80,22 @@ int main(int argc, char** argv) {
 	output << "typedef double f64;\n";
 	output << "typedef std::string str;\n\n";
 
-	output << "void println(str s) {\n\tstd::cout << s << std::endl;\n}\n";
-	output << "void print(str s) {\n\tstd::cout << s;\n}\n";
+	output << "void println(str s) {\n\tstd::cout << s << std::endl;\n}\n\n";
+	output << "void print(str s) {\n\tstd::cout << s;\n}\n\n";
+	output << "void println(str& s) {\n\tstd::cout << s << std::endl;\n}\n\n";
+	output << "void print(str& s) {\n\tstd::cout << s;\n}\n\n";
 
 	bool in_string = false;
+	unsigned int current_line = 0;
 
 	char c;
 	while (file >> c) {
+
+		if (c == '\r') {
+			continue;
+		} else if (c == '\n') {
+			current_line++;
+		}
 
 		if (c == '"' && (ss.str().back() != '\\' || ss.str().size() == 0)) {
 			in_string = !in_string;
@@ -179,12 +109,29 @@ int main(int argc, char** argv) {
 		if (!in_string && c == '\n') {
 
 			std::vector<int> quotes = find_quotes(ss.str());
-			if (quotes.size() == 0) {
+
+			bool formatting = false;
+			if (quotes.size() != 0) {
+				for (int i = 0; i < quotes.size(); i += 2) {
+					if (ss.str().substr(quotes[i], quotes[i+1]-quotes[i]+2).find('{') != std::string::npos) {
+						formatting = true;
+						break;
+					}
+				}
+			}
+
+			if (!formatting) {
 				output << ss.str() << "\n";
 			} else {
 				output << ss.str().substr(0, quotes[0]);
 				for (int i = 0; i < quotes.size(); i += 2) {
-					output << format_string(ss.str().substr(quotes[i], quotes[i+1]-quotes[i]+2)) << (i == quotes.size()-1 ? ss.str().substr(quotes[i+1]+1) : ss.str().substr(quotes[i+1]+1, quotes[i+2]-quotes[i+1]-1));
+					std::optional<std::string> format = format_string(ss.str().substr(quotes[i], quotes[i+1]-quotes[i]+2));
+					if (format.has_value()) {
+						output << format.value() << (i == quotes.size()-1 ? ss.str().substr(quotes[i+1]+1) : ss.str().substr(quotes[i+1]+1, quotes[i+2]-quotes[i+1]-1)) << '\n';
+					} else {
+						std::cout << RED << '[' << "ERROR" << "] No ending bracket for format string\n " << RESET << "--> " << input_file << ":" << current_line << "\n\t" << ss.str().substr(quotes[i], quotes[i+1]-quotes[i]+1) << std::endl;
+						return 3;
+					}
 				}
 			}
 

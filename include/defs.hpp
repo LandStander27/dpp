@@ -23,3 +23,8 @@ int posix_spawn(pid_t* pid, const char* binary, void*, void*, char** argv, char*
 pid_t waitpid(pid_t pid, int* status, int options);
 
 #endif
+
+#define RESET "\x1b[0m"
+#define RED "\x1b[31m"
+#define DARKRED "\x1b[91m"
+#define GREEN "\x1b[32m"
