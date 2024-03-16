@@ -2,6 +2,45 @@
 
 extern char **environ;
 
+const std::string vec_impl =
+"template<typename T>" "\n"
+"class Vec {" "\n"
+"	std::vector<T> v;" "\n"
+"public:" "\n"
+"	Vec(std::initializer_list<T> init) {" "\n"
+"		this->v = std::vector<T>(init);" "\n"
+"	}" "\n"
+"	u64 len() {" "\n"
+"		return this->v.size();" "\n"
+"	}" "\n"
+"	void operator<<(T& t) {" "\n"
+"		this->v.push_back(t);" "\n"
+"	}" "\n"
+"	void operator<<(T t) {" "\n"
+"		this->v.push_back(t);" "\n"
+"	}" "\n"
+"	T operator[](u64 i) {" "\n"
+"		if (i >= this->len()) {" "\n"
+"			std::cout << RED << \"[RUNTIME] Index out of bounds: len is \" << this->len() << \", index is \" << i << RESET << std::endl;" "\n"
+"			exit(101);" "\n"
+"		}" "\n"
+"		return this->v[i];" "\n"
+"	}" "\n"
+"};\n" "\n"
+
+"template<typename T>" "\n"
+"std::ostream& operator<<(std::ostream& os, Vec<T>& vec) {" "\n"
+"	os << \"{ \";" "\n"
+"	for (int i = 0; i < vec.len(); i++) {" "\n"
+"		os << vec[i];" "\n"
+"		if (i < vec.len() - 1) {" "\n"
+"			os << \", \";" "\n"
+"		}" "\n"
+"	}" "\n"
+"	os << \" }\";" "\n"
+"	return os;" "\n"
+"}\n";
+
 std::optional<std::string> format_string(std::string org) {
 
 	std::stringstream ss;
@@ -18,7 +57,7 @@ std::optional<std::string> format_string(std::string org) {
 				return std::nullopt;
 			}
 
-			ss << "\" << " << org.substr(i+1, end-i-1) << " << \"";
+			ss << "\" << (" << org.substr(i+1, end-i-1) << ") << \"";
 			i = end;
 			continue;
 		} else if (org[i] == '{') {
@@ -44,14 +83,6 @@ std::vector<int> find_quotes(std::string s) {
 	return ret;
 }
 
-template<typename T>
-class Vec : public std::vector<T> {
-public:
-	void operator<<(T& t) {
-		this->push_back(t);
-	}
-};
-
 int main(int argc, char** argv) {
 
 	if (argc < 2) {
@@ -76,11 +107,30 @@ int main(int argc, char** argv) {
 	std::stringstream ss;
 	file >> std::noskipws;
 
+	bool has_vecs = false;
+
+	int size = std::filesystem::file_size(input_file);
+	std::string* entire_file = new std::string(size, '\0');
+	file.read(entire_file->data(), size);
+	file.seekg(0, file.beg);
+
+	if (entire_file->find("Vec") != std::string::npos) {
+		has_vecs = true;
+	}
+
+	free(entire_file);
+
 	std::stringstream output;
 	output <<
-"#include <iostream>" "\n"
-"#include <vector>" "\n"
+"#include <iostream>" "\n";
+if (has_vecs) { output << "#include <vector>" "\n"; }
+	output <<
 "#include <sstream>\n" "\n"
+
+"#define RESET \"\\x1b[0m\"" "\n"
+"#define RED \"\\x1b[31m\"" "\n"
+"#define DARKRED \"\\x1b[91m\"" "\n"
+"#define GREEN \"\\x1b[32m\"\n" "\n"
 
 "typedef int i32;" "\n"
 "typedef long long i64;" "\n"
@@ -93,41 +143,11 @@ int main(int argc, char** argv) {
 "void println(str s) { std::cout << s << std::endl; }" "\n"
 "void print(str s) { std::cout << s; }" "\n"
 "void println(str& s) { std::cout << s << std::endl; }" "\n"
-"void print(str& s) { std::cout << s; }\n" "\n"
+"void print(str& s) { std::cout << s; }\n" "\n";
 
-"template<typename T>" "\n"
-"class Vec {" "\n"
-"	std::vector<T> v;" "\n"
-"public:" "\n"
-"	Vec(std::initializer_list<T> init) {" "\n"
-"		this->v = std::vector<T>(init);" "\n"
-"	}" "\n"
-"	u64 len() {" "\n"
-"		return this->v.size();" "\n"
-"	}" "\n"
-"	void operator<<(T& t) {" "\n"
-"		this->v.push_back(t);" "\n"
-"	}" "\n"
-"	void operator<<(T t) {" "\n"
-"		this->v.push_back(t);" "\n"
-"	}" "\n"
-"	T operator[](u64 i) {" "\n"
-"		return this->v[i];" "\n"
-"	}" "\n"
-"};" "\n"
-"" "\n"
-"template<typename T>" "\n"
-"std::ostream& operator<<(std::ostream& os, Vec<T>& vec) {" "\n"
-"	os << \"{ \";" "\n"
-"	for (int i = 0; i < vec.len(); i++) {" "\n"
-"		os << vec[i];" "\n"
-"		if (i < vec.len() - 1) {" "\n"
-"			os << \", \";" "\n"
-"		}" "\n"
-"	}" "\n"
-"	os << \" }\";" "\n"
-"	return os;" "\n"
-"}\n" "\n";
+	if (has_vecs) {
+		output << vec_impl << '\n';
+	}
 
 	bool in_string = false;
 	unsigned int current_line = 0;
