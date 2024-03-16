@@ -1,4 +1,5 @@
 #include "defs.hpp"
+#include "argparse/argparse.hpp"
 
 extern char **environ;
 
@@ -40,6 +41,8 @@ const std::string vec_impl =
 "	os << \" }\";" "\n"
 "	return os;" "\n"
 "}\n";
+
+#define LOG_IF_V(x) if (parser["--verbose"] == true) { LOG(x); }
 
 std::optional<std::string> format_string(std::string org) {
 
@@ -85,18 +88,35 @@ std::vector<int> find_quotes(std::string s) {
 
 int main(int argc, char** argv) {
 
-	if (argc < 2) {
-		std::cout << "No input file" << std::endl;
+	argparse::ArgumentParser parser = argparse::ArgumentParser("D++ compiler");
+
+	parser.add_argument("input_file").help("Input file").required();
+	parser.add_argument("-o", "--output").help("Output file").default_value(std::string("a.out"));
+	parser.add_argument("-kc", "--keep-cpp").help("Keep the translated C++").default_value(false);
+	parser.add_argument("-v", "--verbose").help("Verbose output").default_value(false).implicit_value(true);
+	parser.add_argument("-prod").help("Heavy optimization").default_value(false).implicit_value(true);
+
+	try {
+		parser.parse_args(argc, argv);
+	} catch (const std::exception& err) {
+		std::cout << err.what() << std::endl;
+		std::cout << parser;
 		return 1;
 	}
 
-	std::string input_file = "";
-	input_file = std::string(argv[1]);
+	std::string input_file = parser.get<std::string>("input_file");
 
-	if (!std::filesystem::exists(std::filesystem::path(input_file))) {
+	if (!std::filesystem::exists(input_file)) {
 		std::cout << "Input file does not exist" << std::endl;
 		return 2;
 	}
+
+	if (!std::filesystem::is_regular_file(input_file)) {
+		std::cout << "Invalid file" << std::endl;
+		return 2;
+	}
+
+	LOG_IF_V("Opening file " << input_file);
 
 	std::ifstream file = std::ifstream(input_file);
 
@@ -109,16 +129,24 @@ int main(int argc, char** argv) {
 
 	bool has_vecs = false;
 
+	std::chrono::duration<double> start = std::chrono::system_clock::now().time_since_epoch();
+
+	LOG_IF_V("Reading file " << input_file);
+
 	int size = std::filesystem::file_size(input_file);
 	std::string* entire_file = new std::string(size, '\0');
 	file.read(entire_file->data(), size);
 	file.seekg(0, file.beg);
+
+	LOG_IF_V("Testing Vec existence");
 
 	if (entire_file->find("Vec") != std::string::npos) {
 		has_vecs = true;
 	}
 
 	free(entire_file);
+
+	LOG_IF_V("Creating header");
 
 	std::stringstream output;
 	output <<
@@ -146,11 +174,14 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "void print(str& s) { std::cout << s; }\n" "\n";
 
 	if (has_vecs) {
+		LOG_IF_V("Creating Vec header");
 		output << vec_impl << '\n';
 	}
 
 	bool in_string = false;
 	unsigned int current_line = 0;
+
+	LOG_IF_V("Translating file");
 
 	char c;
 	while (file >> c) {
@@ -207,18 +238,24 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 
 	}
 
+	file.close();
+
 	output << ss.str();
 
-	std::cout << output.str() << std::endl;
-
-	std::string name = input_file.find_last_of(".") != std::string::npos ? input_file.substr(0, input_file.find_last_of(".")) : input_file;
+	std::string name = parser.get<std::string>("--output");
 
 	std::ofstream file_out = std::ofstream(name + ".cpp");
 	file_out << output.str();
 	file_out.close();
 
+	LOG_IF_V("Spawning g++");
+
 	pid_t pid;
-	std::vector<std::string> gcc_args = { "g++", name + ".cpp", "-o", name };
+	std::vector<std::string> gcc_args = { "g++", "-static", name + ".cpp", "-o", name };
+	if (parser["-prod"] == true) {
+		LOG_IF_V("Compiling with -O3");
+		gcc_args.push_back("-O3");
+	}
 
 	char** gcc_argsc = (char**)malloc(sizeof(char*)*(gcc_args.size()+1));
 	for (int i = 0; i < gcc_args.size(); i++) {
@@ -227,13 +264,20 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 	gcc_argsc[gcc_args.size()] = NULL;
 
 	int status = posix_spawn(&pid, "/usr/bin/g++", NULL, NULL, gcc_argsc, environ);
+
+	LOG_IF_V("Waiting for g++");
 	waitpid(pid, &status, 0);
 
 	free((void*)gcc_argsc);
 
-	// std::remove((name + ".cpp").c_str());
+	std::chrono::duration<double> elapsed = std::chrono::system_clock::now().time_since_epoch() - start;
 
-	file.close();
+	if (parser["--keep-cpp"] == false) {
+		LOG_IF_V("Deleting " << name + ".cpp");
+		std::remove((name + ".cpp").c_str());
+	}
+
+	std::cout << GREEN << "[DONE] Compiled in " << round(elapsed.count()*1000) << "ms" << RESET << std::endl;
 
 	return 0;
 
