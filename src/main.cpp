@@ -77,57 +77,57 @@ int main(int argc, char** argv) {
 	file >> std::noskipws;
 
 	std::stringstream output;
-	output << "#include <iostream>\n";
-	output << "#include <vector>\n";
-	output << "#include <sstream>\n\n";
-
-	output << "typedef int i32;\n";
-	output << "typedef long long i64;\n";
-	output << "typedef unsigned int u32;\n";
-	output << "typedef unsigned long long u64;\n";
-	output << "typedef float f32;\n";
-	output << "typedef double f64;\n";
-	output << "typedef std::string str;\n\n";
-
-	output << "void println(str s) {\n\tstd::cout << s << std::endl;\n}\n\n";
-	output << "void print(str s) {\n\tstd::cout << s;\n}\n\n";
-	output << "void println(str& s) {\n\tstd::cout << s << std::endl;\n}\n\n";
-	output << "void print(str& s) {\n\tstd::cout << s;\n}\n\n";
-
 	output <<
-"template<typename T>\n\
-class Vec {\n\
-	std::vector<T> v;\n\
-public:\n\
-	Vec(std::initializer_list<T> init) {\n\
-		this->v = std::vector<T>(init);\n\
-	}\n\
-	u64 len() {\n\
-		return this->v.size();\n\
-	}\n\
-	void operator<<(T& t) {\n\
-		this->v.push_back(t);\n\
-	}\n\
-	void operator<<(T t) {\n\
-		this->v.push_back(t);\n\
-	}\n\
-	T operator[](u64 i) {\n\
-		return this->v[i];\n\
-	}\n\
-};\n\
-\n\
-template<typename T>\n\
-std::ostream& operator<<(std::ostream& os, Vec<T>& vec) {\n\
-	os << \"{ \";\n\
-	for (int i = 0; i < vec.len(); i++) {\n\
-		os << vec[i];\n\
-		if (i < vec.len() - 1) {\n\
-			os << \", \";\n\
-		}\n\
-	}\n\
-	os << \" }\";\n\
-	return os;\n\
-}\n\n";
+"#include <iostream>" "\n"
+"#include <vector>" "\n"
+"#include <sstream>\n" "\n"
+
+"typedef int i32;" "\n"
+"typedef long long i64;" "\n"
+"typedef unsigned int u32;" "\n"
+"typedef unsigned long long u64;" "\n"
+"typedef float f32;" "\n"
+"typedef double f64;" "\n"
+"typedef std::string str;\n" "\n"
+
+"void println(str s) { std::cout << s << std::endl; }" "\n"
+"void print(str s) { std::cout << s; }" "\n"
+"void println(str& s) { std::cout << s << std::endl; }" "\n"
+"void print(str& s) { std::cout << s; }\n" "\n"
+
+"template<typename T>" "\n"
+"class Vec {" "\n"
+"	std::vector<T> v;" "\n"
+"public:" "\n"
+"	Vec(std::initializer_list<T> init) {" "\n"
+"		this->v = std::vector<T>(init);" "\n"
+"	}" "\n"
+"	u64 len() {" "\n"
+"		return this->v.size();" "\n"
+"	}" "\n"
+"	void operator<<(T& t) {" "\n"
+"		this->v.push_back(t);" "\n"
+"	}" "\n"
+"	void operator<<(T t) {" "\n"
+"		this->v.push_back(t);" "\n"
+"	}" "\n"
+"	T operator[](u64 i) {" "\n"
+"		return this->v[i];" "\n"
+"	}" "\n"
+"};" "\n"
+"" "\n"
+"template<typename T>" "\n"
+"std::ostream& operator<<(std::ostream& os, Vec<T>& vec) {" "\n"
+"	os << \"{ \";" "\n"
+"	for (int i = 0; i < vec.len(); i++) {" "\n"
+"		os << vec[i];" "\n"
+"		if (i < vec.len() - 1) {" "\n"
+"			os << \", \";" "\n"
+"		}" "\n"
+"	}" "\n"
+"	os << \" }\";" "\n"
+"	return os;" "\n"
+"}\n" "\n";
 
 	bool in_string = false;
 	unsigned int current_line = 0;
