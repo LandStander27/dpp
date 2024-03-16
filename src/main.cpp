@@ -95,6 +95,7 @@ int main(int argc, char** argv) {
 	parser.add_argument("-kc", "--keep-cpp").help("Keep the translated C++").default_value(false);
 	parser.add_argument("-v", "--verbose").help("Verbose output").default_value(false).implicit_value(true);
 	parser.add_argument("-prod").help("Heavy optimization").default_value(false).implicit_value(true);
+	parser.add_argument("-s", "--static").help("Static linking").default_value(false).implicit_value(true);
 
 	try {
 		parser.parse_args(argc, argv);
@@ -251,10 +252,15 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 	LOG_IF_V("Spawning g++");
 
 	pid_t pid;
-	std::vector<std::string> gcc_args = { "g++", "-static", name + ".cpp", "-o", name };
+	std::vector<std::string> gcc_args = { "g++", name + ".cpp", "-o", name };
 	if (parser["-prod"] == true) {
 		LOG_IF_V("Compiling with -O3");
 		gcc_args.push_back("-O3");
+	}
+
+	if (parser["--static"] == true) {
+		LOG_IF_V("Compiling with -static");
+		gcc_args.push_back("-static");
 	}
 
 	char** gcc_argsc = (char**)malloc(sizeof(char*)*(gcc_args.size()+1));
