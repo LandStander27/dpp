@@ -44,6 +44,14 @@ std::vector<int> find_quotes(std::string s) {
 	return ret;
 }
 
+template<typename T>
+class Vec : public std::vector<T> {
+public:
+	void operator<<(T& t) {
+		this->push_back(t);
+	}
+};
+
 int main(int argc, char** argv) {
 
 	if (argc < 2) {
@@ -70,6 +78,7 @@ int main(int argc, char** argv) {
 
 	std::stringstream output;
 	output << "#include <iostream>\n";
+	output << "#include <vector>\n";
 	output << "#include <sstream>\n\n";
 
 	output << "typedef int i32;\n";
@@ -84,6 +93,41 @@ int main(int argc, char** argv) {
 	output << "void print(str s) {\n\tstd::cout << s;\n}\n\n";
 	output << "void println(str& s) {\n\tstd::cout << s << std::endl;\n}\n\n";
 	output << "void print(str& s) {\n\tstd::cout << s;\n}\n\n";
+
+	output <<
+"template<typename T>\n\
+class Vec {\n\
+	std::vector<T> v;\n\
+public:\n\
+	Vec(std::initializer_list<T> init) {\n\
+		this->v = std::vector<T>(init);\n\
+	}\n\
+	u64 len() {\n\
+		return this->v.size();\n\
+	}\n\
+	void operator<<(T& t) {\n\
+		this->v.push_back(t);\n\
+	}\n\
+	void operator<<(T t) {\n\
+		this->v.push_back(t);\n\
+	}\n\
+	T operator[](u64 i) {\n\
+		return this->v[i];\n\
+	}\n\
+};\n\
+\n\
+template<typename T>\n\
+std::ostream& operator<<(std::ostream& os, Vec<T>& vec) {\n\
+	os << \"{ \";\n\
+	for (int i = 0; i < vec.len(); i++) {\n\
+		os << vec[i];\n\
+		if (i < vec.len() - 1) {\n\
+			os << \", \";\n\
+		}\n\
+	}\n\
+	os << \" }\";\n\
+	return os;\n\
+}\n\n";
 
 	bool in_string = false;
 	unsigned int current_line = 0;
@@ -167,7 +211,7 @@ int main(int argc, char** argv) {
 
 	free((void*)gcc_argsc);
 
-	std::remove((name + ".cpp").c_str());
+	// std::remove((name + ".cpp").c_str());
 
 	file.close();
 

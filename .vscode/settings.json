@@ -78,7 +78,8 @@
 		"numbers": "cpp",
 		"variant": "cpp",
 		"bitset": "cpp",
-		"regex": "cpp"
+		"regex": "cpp",
+		"span": "cpp"
 	},
 	"C_Cpp.errorSquiggles": "enabled"
 }
