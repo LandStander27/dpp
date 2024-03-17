@@ -36,19 +36,27 @@ const std::string vec_impl =
 "		os << \" }\";" "\n"
 "		return os.str();" "\n"
 "	}" "\n"
+"	bool contains(T val) {" "\n"
+"		for (int i = 0; i < this->len(); i++) {" "\n"
+"			if (this->v[i] == val) {" "\n"
+"				return true;" "\n"
+"			}" "\n"
+"		}" "\n"
+"		return false;" "\n"
+"	}" "\n"
 "	void operator<<(T t) {" "\n"
 "		this->v.push_back(t);" "\n"
 "	}" "\n"
-"	T* begin() { return &(this->v[0]); }" "\n"
-"	T* end() { return &(this->v[this->len()]); }" "\n"
-
 "	template<typename U>" "\n"
 "	T operator[](U i) {" "\n"
 "		if (i >= this->len()) {" "\n"
 "			panic(\"Index out of bounds: len is \" + this->len().to_string() + \", index is \" + std::to_string(i));" "\n"
 "		}" "\n"
 "		return this->v[i];" "\n"
-"	}" "\n"
+"	}\n" "\n"
+
+"	T* begin() { return &(this->v[0]); }" "\n"
+"	T* end() { return &(this->v[this->len()]); }" "\n"
 "};\n" "\n";
 
 // "template<typename T>" "\n"
@@ -90,7 +98,7 @@ std::optional<std::string> format_string(std::string org) {
 		}
 		ss << org[i];
 	}
-	ss << "\"; no_one_name_your_variable_this.str();})";
+	ss << "\"; str(no_one_name_your_variable_this.str());})";
 
 	return ss.str();
 
@@ -253,11 +261,14 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "	str operator+(const char* other) {" "\n"
 "		return str(this->val + other);" "\n"
 "	}" "\n"
+"	bool operator==(const str& other) {" "\n"
+"		return this->val == other.val;" "\n"
+"	}" "\n"
 "	std::string data() {" "\n"
 "		return this->val;" "\n"
 "	}" "\n"
 "	char* begin() { return &(this->val[0]); }" "\n"
-"	char* end() { return &(this->val[this->val.size()]); }" "\n"
+"	char* end() { return &(this->val[this->val.size()]); }\n" "\n"
 
 "	friend std::ostream& operator<<(std::ostream& os, str str);" "\n"
 "};\n" "\n"
@@ -302,6 +313,8 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "		return str(*this);" "\n"
 "	}\n" "\n"
 
+"	inline bool operator ==(Number other) { return this->val == other.val; }" "\n"
+"	inline bool operator ==(T other) { return this->val == other; }" "\n"
 "	inline void operator =(T other) { this->val = other; }\n" "\n"
 
 "	inline void operator -=(Number other) { this->val -= other.val; }" "\n"
@@ -347,8 +360,13 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "	using Number::Number;" "\n"
 "};\n" "\n"
 
-"static inline void println(const str s) { std::cout << s << std::endl; }" "\n"
-"static inline void print(const str s) { std::cout << s; }\n" "\n"
+"template <typename T>" "\n"
+"static inline void println(T s) { std::cout << T(s).display() << std::endl; }" "\n"
+"template <typename T>" "\n"
+"static inline void print(T s) { std::cout << T(s).display(); }\n" "\n"
+
+"static inline void println(const char* s) { std::cout << s << std::endl; }" "\n"
+"static inline void print(const char* s) { std::cout << s; }\n" "\n"
 
 "template <typename T = str>" "\n"
 "T scan() { std::string t; std::getline(std::cin, t); return T(t); }\n" "\n"
