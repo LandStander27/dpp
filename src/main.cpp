@@ -116,40 +116,6 @@ std::vector<int> find_quotes(std::string s) {
 	return ret;
 }
 
-template <typename T>
-class Number {
-	T val;
-
-public:
-	Number(T val) {
-		this->val = val;
-	}
-
-	operator T() {
-		return this->val;
-	}
-
-	std::string to_string() {
-		return std::to_string(this->val);
-	}
-
-	T operator -(T other) { return std::move(Number(this->val - other.val)); }
-	T operator +(T other) { return std::move(Number(this->val + other.val)); }
-	T operator /(T other) { return std::move(Number(this->val / other.val)); }
-	T operator *(T other) { return std::move(Number(this->val * other.val)); }
-
-	void operator -=(T other) { this->val -= other.val; }
-	void operator +=(T other) { this->val += other.val; }
-	void operator /=(T other) { this->val /= other.val; }
-	void operator *=(T other) { this->val *= other.val; }
-
-};
-
-class i32 : public Number<int> {
-public:
-	i32(int val) : Number(val) {}
-};
-
 int main(int argc, char** argv) {
 
 	argparse::ArgumentParser parser = argparse::ArgumentParser("D++ compiler");
