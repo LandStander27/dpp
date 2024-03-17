@@ -215,6 +215,8 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "		return std::to_string(this->val);" "\n"
 "	}\n" "\n"
 
+"	void operator =(const T other) { this->val = other; }\n" "\n"
+
 "	T operator -(const T other) { return std::move(Number(this->val - other.val)); }" "\n"
 "	T operator +(const T other) { return std::move(Number(this->val + other.val)); }" "\n"
 "	T operator /(const T other) { return std::move(Number(this->val / other.val)); }" "\n"
