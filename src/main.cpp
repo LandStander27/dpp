@@ -162,18 +162,69 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "#define DARKRED \"\\x1b[91m\"" "\n"
 "#define GREEN \"\\x1b[32m\"\n" "\n"
 
-"typedef int i32;" "\n"
-"typedef long long i64;" "\n"
-"typedef unsigned int u32;" "\n"
-"typedef unsigned long long u64;" "\n"
-"typedef float f32;" "\n"
-"typedef double f64;" "\n"
+"template <typename T>" "\n"
+"class Number {" "\n"
+"	T val;\n" "\n"
+
+"public:" "\n"
+"	Number(T val) {" "\n"
+"		this->val = val;" "\n"
+"	}\n" "\n"
+
+"	operator T() {" "\n"
+"		return this->val;" "\n"
+"	}\n" "\n"
+
+"	T operator -(T other) { return std::move(Number(this->val - other.val)); }" "\n"
+"	T operator +(T other) { return std::move(Number(this->val + other.val)); }" "\n"
+"	T operator /(T other) { return std::move(Number(this->val / other.val)); }" "\n"
+"	T operator *(T other) { return std::move(Number(this->val * other.val)); }\n" "\n"
+
+"	void operator -=(T other) { this->val -= other.val; }" "\n"
+"	void operator +=(T other) { this->val += other.val; }" "\n"
+"	void operator /=(T other) { this->val /= other.val; }" "\n"
+"	void operator *=(T other) { this->val *= other.val; }\n" "\n"
+
+"};\n" "\n"
+
+"class i32 : public Number<int> {" "\n"
+"public:" "\n"
+"	i32(int val) : Number(val) {}" "\n"
+"};\n" "\n"
+
+"class i64 : public Number<long long> {" "\n"
+"public:" "\n"
+"	i64(long long val) : Number(val) {}" "\n"
+"};\n" "\n"
+
+"class u32 : public Number<unsigned int> {" "\n"
+"public:" "\n"
+"	u32(unsigned int val) : Number(val) {}" "\n"
+"};\n" "\n"
+
+"class u64 : public Number<unsigned long long> {" "\n"
+"public:" "\n"
+"	u64(unsigned long long val) : Number(val) {}" "\n"
+"};\n" "\n"
+
+"class f32 : public Number<float> {" "\n"
+"public:" "\n"
+"	f32(float val) : Number(val) {}" "\n"
+"};\n" "\n"
+
+"class f64 : public Number<double> {" "\n"
+"public:" "\n"
+"	f64(double val) : Number(val) {}" "\n"
+"};\n" "\n"
+
 "typedef std::string str;\n" "\n"
 
 "static inline void println(str s) { std::cout << s << std::endl; }" "\n"
 "static inline void print(str s) { std::cout << s; }" "\n"
 "static inline void println(str& s) { std::cout << s << std::endl; }" "\n"
-"static inline void print(str& s) { std::cout << s; }\n" "\n";
+"static inline void print(str& s) { std::cout << s; }\n" "\n"
+
+"std::string scan() { std::string t; std::getline(std::cin, t); return std::move(t); }" "\n";
 
 	if (has_vecs) {
 		LOG_IF_V("Creating Vec header");
