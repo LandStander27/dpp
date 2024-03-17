@@ -1,8 +1,8 @@
 # D++
 
 Extremely simple compiled language.
-- Translates into C++ first and then into an executable. This allows you to put C++ in your D++ code.
-- Better type names (i32, i64, u32, f32, etc)
+- Translates into C++ first and then into an executable. This allows you to put C++ in your D++ code. (This is a side effect but I'm calling it a feature).
+- Better type names (i32, i64, u32, f32, etc).
 
 ## Getting Started
 
