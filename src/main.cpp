@@ -87,6 +87,40 @@ std::vector<int> find_quotes(std::string s) {
 	return ret;
 }
 
+template <typename T>
+class Number {
+	T val;
+
+public:
+	Number(T val) {
+		this->val = val;
+	}
+
+	operator T() {
+		return this->val;
+	}
+
+	std::string to_string() {
+		return std::to_string(this->val);
+	}
+
+	T operator -(T other) { return std::move(Number(this->val - other.val)); }
+	T operator +(T other) { return std::move(Number(this->val + other.val)); }
+	T operator /(T other) { return std::move(Number(this->val / other.val)); }
+	T operator *(T other) { return std::move(Number(this->val * other.val)); }
+
+	void operator -=(T other) { this->val -= other.val; }
+	void operator +=(T other) { this->val += other.val; }
+	void operator /=(T other) { this->val /= other.val; }
+	void operator *=(T other) { this->val *= other.val; }
+
+};
+
+class i32 : public Number<int> {
+public:
+	i32(int val) : Number(val) {}
+};
+
 int main(int argc, char** argv) {
 
 	argparse::ArgumentParser parser = argparse::ArgumentParser("D++ compiler");
@@ -162,6 +196,8 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "#define DARKRED \"\\x1b[91m\"" "\n"
 "#define GREEN \"\\x1b[32m\"\n" "\n"
 
+"typedef std::string str;\n" "\n"
+
 "template <typename T>" "\n"
 "class Number {" "\n"
 "	T val;\n" "\n"
@@ -175,15 +211,19 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "		return this->val;" "\n"
 "	}\n" "\n"
 
-"	T operator -(T other) { return std::move(Number(this->val - other.val)); }" "\n"
-"	T operator +(T other) { return std::move(Number(this->val + other.val)); }" "\n"
-"	T operator /(T other) { return std::move(Number(this->val / other.val)); }" "\n"
-"	T operator *(T other) { return std::move(Number(this->val * other.val)); }\n" "\n"
+"	str to_string() {" "\n"
+"		return std::to_string(this->val);" "\n"
+"	}\n" "\n"
 
-"	void operator -=(T other) { this->val -= other.val; }" "\n"
-"	void operator +=(T other) { this->val += other.val; }" "\n"
-"	void operator /=(T other) { this->val /= other.val; }" "\n"
-"	void operator *=(T other) { this->val *= other.val; }\n" "\n"
+"	T operator -(const T other) { return std::move(Number(this->val - other.val)); }" "\n"
+"	T operator +(const T other) { return std::move(Number(this->val + other.val)); }" "\n"
+"	T operator /(const T other) { return std::move(Number(this->val / other.val)); }" "\n"
+"	T operator *(const T other) { return std::move(Number(this->val * other.val)); }\n" "\n"
+
+"	void operator -=(const T other) { this->val -= other.val; }" "\n"
+"	void operator +=(const T other) { this->val += other.val; }" "\n"
+"	void operator /=(const T other) { this->val /= other.val; }" "\n"
+"	void operator *=(const T other) { this->val *= other.val; }\n" "\n"
 
 "};\n" "\n"
 
@@ -217,12 +257,8 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "	f64(double val) : Number(val) {}" "\n"
 "};\n" "\n"
 
-"typedef std::string str;\n" "\n"
-
-"static inline void println(str s) { std::cout << s << std::endl; }" "\n"
-"static inline void print(str s) { std::cout << s; }" "\n"
-"static inline void println(str& s) { std::cout << s << std::endl; }" "\n"
-"static inline void print(str& s) { std::cout << s; }\n" "\n"
+"static inline void println(const str s) { std::cout << s << std::endl; }" "\n"
+"static inline void print(const str s) { std::cout << s; }" "\n"
 
 "std::string scan() { std::string t; std::getline(std::cin, t); return std::move(t); }" "\n";
 
