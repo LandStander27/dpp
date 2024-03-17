@@ -212,20 +212,20 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "	}\n" "\n"
 
 "	str to_string() {" "\n"
-"		return std::to_string(this->val);" "\n"
+"		return std::move(std::to_string(this->val));" "\n"
 "	}\n" "\n"
 
-"	void operator =(const T other) { this->val = other; }\n" "\n"
+"	inline void operator =(const T other) { this->val = other; }\n" "\n"
 
-"	T operator -(const T other) { return std::move(Number(this->val - other.val)); }" "\n"
-"	T operator +(const T other) { return std::move(Number(this->val + other.val)); }" "\n"
-"	T operator /(const T other) { return std::move(Number(this->val / other.val)); }" "\n"
-"	T operator *(const T other) { return std::move(Number(this->val * other.val)); }\n" "\n"
+"	inline T operator -(const T other) { return std::move(Number(this->val - other.val)); }" "\n"
+"	inline T operator +(const T other) { return std::move(Number(this->val + other.val)); }" "\n"
+"	inline T operator /(const T other) { return std::move(Number(this->val / other.val)); }" "\n"
+"	inline T operator *(const T other) { return std::move(Number(this->val * other.val)); }\n" "\n"
 
-"	void operator -=(const T other) { this->val -= other.val; }" "\n"
-"	void operator +=(const T other) { this->val += other.val; }" "\n"
-"	void operator /=(const T other) { this->val /= other.val; }" "\n"
-"	void operator *=(const T other) { this->val *= other.val; }\n" "\n"
+"	inline void operator -=(const T other) { this->val -= other.val; }" "\n"
+"	inline void operator +=(const T other) { this->val += other.val; }" "\n"
+"	inline void operator /=(const T other) { this->val /= other.val; }" "\n"
+"	inline void operator *=(const T other) { this->val *= other.val; }\n" "\n"
 
 "};\n" "\n"
 
