@@ -64,14 +64,20 @@ i32 main() {
 		print("{i}, ");
 	} // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 
+	print("\n");
+
 	for (i32 i in 0..=10) {
 		print("{i}, ");
 	} // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 
+	print("\n");
+
 	Vec<str> a = { "one", "two", "three" };
-	for (i32& i in a) {
+	for (str& i in a) {
 		print("{i}, ");
 	} // one, two, three,
+
+	print("\n");
 }
 ```
 - Everything else is exactly like C++

@@ -28,7 +28,7 @@ const std::string vec_impl =
 "		std::stringstream os;" "\n"
 "		os << \"{ \";" "\n"
 "		for (int i = 0; i < this->len(); i++) {" "\n"
-"			os << (*this)[i];" "\n"
+"			os << (*this)[i].display();" "\n"
 "			if (i < this->len() - 1) {" "\n"
 "				os << \", \";" "\n"
 "			}" "\n"
@@ -73,8 +73,8 @@ std::optional<std::string> format_string(std::string org) {
 	ss << "({";
 
 	int string_start = org.find("\"");
-	ss << "std::stringstream s; ";
-	ss << "s << ";
+	ss << "std::stringstream no_one_name_your_variable_this; ";
+	ss << "no_one_name_your_variable_this << ";
 	for (int i = string_start; i < org.size()-2; i++) {
 		if (org[i] == '{' && (i != org.size()-3 ? org[i+1] != '{' : true)) {
 			int end = org.find('}', i);
@@ -90,7 +90,7 @@ std::optional<std::string> format_string(std::string org) {
 		}
 		ss << org[i];
 	}
-	ss << "\"; s.str();})";
+	ss << "\"; no_one_name_your_variable_this.str();})";
 
 	return ss.str();
 
@@ -226,6 +226,9 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "		this->val = val.to_string().data();" "\n"
 "	}" "\n"
 "	str(const std::string val) {" "\n"
+"		this->val = val;" "\n"
+"	}" "\n"
+"	str(char* val) {" "\n"
 "		this->val = val;" "\n"
 "	}" "\n"
 "	str(const char* val) {" "\n"
