@@ -17,11 +17,22 @@ i32 main() {
 }
 ```
 
+- Stdin
+```
+i32 main() {
+	print("String: ");
+	str a = scan();
+
+	print("Integer: ");
+	i32 b = scan<i32>();
+}
+```
+
 - String formatting
 ```
 i32 main() {
 	i32 a = 6;
-	str s = "Mine: {a}";
+	str s = "Mine: {a}"; // Calls a.display() and embeds into string. This allows you to create a custom string formatter on an object.
 	println("Number: {s}"); // Number: Mine: 6
 }
 ```

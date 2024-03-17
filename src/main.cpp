@@ -14,14 +14,33 @@ const std::string vec_impl =
 "	Vec() {" "\n"
 "		this->v = std::vector<T>();" "\n"
 "	}" "\n"
+"	Vec(T val, u64 len) {" "\n"
+"		this->v = std::vector<T>();" "\n"
+"		this->v.reserve(len);" "\n"
+"		for (int i = 0; i < len; i++) {" "\n"
+"			this->v.push_back(val);" "\n"
+"		}" "\n"
+"	}" "\n"
 "	inline u64 len() {" "\n"
 "		return this->v.size();" "\n"
+"	}" "\n"
+"	std::string display() {" "\n"
+"		std::stringstream os;" "\n"
+"		os << \"{ \";" "\n"
+"		for (int i = 0; i < this->len(); i++) {" "\n"
+"			os << (*this)[i];" "\n"
+"			if (i < this->len() - 1) {" "\n"
+"				os << \", \";" "\n"
+"			}" "\n"
+"		}" "\n"
+"		os << \" }\";" "\n"
+"		return os.str();" "\n"
 "	}" "\n"
 "	void operator<<(T t) {" "\n"
 "		this->v.push_back(t);" "\n"
 "	}" "\n"
-"	typename std::vector<T>::iterator begin() { return this->v.begin(); }" "\n"
-"	typename std::vector<T>::iterator end() { return this->v.end(); }" "\n"
+"	T* begin() { return &(this->v[0]); }" "\n"
+"	T* end() { return &(this->v[this->len()]); }" "\n"
 
 "	template<typename U>" "\n"
 "	T operator[](U i) {" "\n"
@@ -30,20 +49,20 @@ const std::string vec_impl =
 "		}" "\n"
 "		return this->v[i];" "\n"
 "	}" "\n"
-"};\n" "\n"
+"};\n" "\n";
 
-"template<typename T>" "\n"
-"std::ostream& operator<<(std::ostream& os, Vec<T>& vec) {" "\n"
-"	os << \"{ \";" "\n"
-"	for (int i = 0; i < vec.len(); i++) {" "\n"
-"		os << vec[i];" "\n"
-"		if (i < vec.len() - 1) {" "\n"
-"			os << \", \";" "\n"
-"		}" "\n"
-"	}" "\n"
-"	os << \" }\";" "\n"
-"	return os;" "\n"
-"}\n";
+// "template<typename T>" "\n"
+// "std::ostream& operator<<(std::ostream& os, Vec<T>& vec) {" "\n"
+// "	os << \"{ \";" "\n"
+// "	for (int i = 0; i < vec.len(); i++) {" "\n"
+// "		os << vec[i];" "\n"
+// "		if (i < vec.len() - 1) {" "\n"
+// "			os << \", \";" "\n"
+// "		}" "\n"
+// "	}" "\n"
+// "	os << \" }\";" "\n"
+// "	return os;" "\n"
+// "}\n";
 
 #define LOG_IF_V(x) if (parser["--verbose"] == true) { LOG(x); }
 
@@ -63,7 +82,7 @@ std::optional<std::string> format_string(std::string org) {
 				return std::nullopt;
 			}
 
-			ss << "\" << (" << org.substr(i+1, end-i-1) << ") << \"";
+			ss << "\" << (" << org.substr(i+1, end-i-1) << ").display() << \"";
 			i = end;
 			continue;
 		} else if (org[i] == '{') {
@@ -193,12 +212,61 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 	output <<
 "#include <sstream>\n" "\n"
 
-"#define RESET \"\\x1b[0m\"" "\n"
-"#define RED \"\\x1b[31m\"" "\n"
-"#define DARKRED \"\\x1b[91m\"" "\n"
-"#define GREEN \"\\x1b[32m\"\n" "\n"
+"class u64;" "\n"
 
-"typedef std::string str;\n" "\n"
+"class str {" "\n"
+"	std::string val;\n" "\n"
+
+"public:" "\n"
+"	str() {" "\n"
+"		this->val = \"\";" "\n"
+"	}" "\n"
+"	template <typename T>" "\n"
+"	str(T val) {" "\n"
+"		this->val = val.to_string().data();" "\n"
+"	}" "\n"
+"	str(const std::string val) {" "\n"
+"		this->val = val;" "\n"
+"	}" "\n"
+"	str(const char* val) {" "\n"
+"		this->val = val;" "\n"
+"	}" "\n"
+"	str(const char val) {" "\n"
+"		this->val = val;" "\n"
+"	}" "\n"
+"	template <typename T = u64>" "\n"
+"	inline T len() {" "\n"
+"		return T(this->val.size());" "\n"
+"	}" "\n"
+"	inline str display() {" "\n"
+"		return str(this->val);" "\n"
+"	}" "\n"
+"	str operator[](unsigned long long i) {" "\n"
+"		return str(this->val[i]);" "\n"
+"	}" "\n"
+"	str operator+(const str& other) {" "\n"
+"		return str(this->val + other.val);" "\n"
+"	}" "\n"
+"	str operator+(const char* other) {" "\n"
+"		return str(this->val + other);" "\n"
+"	}" "\n"
+"	std::string data() {" "\n"
+"		return this->val;" "\n"
+"	}" "\n"
+"	char* begin() { return &(this->val[0]); }" "\n"
+"	char* end() { return &(this->val[this->val.size()]); }" "\n"
+
+"	friend std::ostream& operator<<(std::ostream& os, str str);" "\n"
+"};\n" "\n"
+
+"str operator+(const char* a, const str& b) {" "\n"
+"	return str(a) + b;" "\n"
+"}\n" "\n"
+
+"std::ostream& operator<<(std::ostream& os, str str) {" "\n"
+"	os << str.val;" "\n"
+"	return os;" "\n"
+"}\n" "\n"
 
 "template <typename T>" "\n"
 "class Number {" "\n"
@@ -209,7 +277,11 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "		this->val = val;" "\n"
 "	}\n" "\n"
 
-"	Number(const std::string& val) {" "\n"
+"	Number() {" "\n"
+"		this->val = 0;" "\n"
+"	}\n" "\n"
+
+"	Number(const str& val) {" "\n"
 "		std::stringstream ss;" "\n"
 "		ss << val;" "\n"
 "		ss >> this->val;" "\n"
@@ -220,7 +292,11 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "	}\n" "\n"
 
 "	str to_string() {" "\n"
-"		return std::move(std::to_string(this->val));" "\n"
+"		return str(std::to_string(this->val));" "\n"
+"	}\n" "\n"
+
+"	str display() {" "\n"
+"		return str(*this);" "\n"
 "	}\n" "\n"
 
 "	inline void operator =(T other) { this->val = other; }\n" "\n"
@@ -271,10 +347,10 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "static inline void println(const str s) { std::cout << s << std::endl; }" "\n"
 "static inline void print(const str s) { std::cout << s; }\n" "\n"
 
-"template <typename T = std::string>" "\n"
+"template <typename T = str>" "\n"
 "T scan() { std::string t; std::getline(std::cin, t); return T(t); }\n" "\n"
 
-"[[noreturn]] void panic(std::string msg) { std::cout << RED << \"[PANIC] \" + msg + RESET << std::endl; exit(101); }\n" "\n";
+"[[noreturn]] void panic(str msg) { std::cout << \"\\x1b[31m\" << \"[PANIC] \" + msg + \"\\x1b[0m\" << std::endl; exit(101); }\n" "\n";
 
 	if (has_vecs) {
 		LOG_IF_V("Creating Vec header");
