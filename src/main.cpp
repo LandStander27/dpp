@@ -11,16 +11,17 @@ const std::string vec_impl =
 "	Vec(std::initializer_list<T> init) {" "\n"
 "		this->v = std::vector<T>(init);" "\n"
 "	}" "\n"
-"	u64 len() {" "\n"
+"	inline u64 len() {" "\n"
 "		return this->v.size();" "\n"
-"	}" "\n"
-"	void operator<<(T& t) {" "\n"
-"		this->v.push_back(t);" "\n"
 "	}" "\n"
 "	void operator<<(T t) {" "\n"
 "		this->v.push_back(t);" "\n"
 "	}" "\n"
-"	T operator[](u64 i) {" "\n"
+"	typename std::vector<T>::iterator begin() { return this->v.begin(); }" "\n"
+"	typename std::vector<T>::iterator end() { return this->v.end(); }" "\n"
+
+"	template<typename U>" "\n"
+"	U operator[](U i) {" "\n"
 "		if (i >= this->len()) {" "\n"
 "			std::cout << RED << \"[RUNTIME] Index out of bounds: len is \" << this->len() << \", index is \" << i << RESET << std::endl;" "\n"
 "			exit(101);" "\n"
@@ -92,7 +93,7 @@ int main(int argc, char** argv) {
 
 	parser.add_argument("input_file").help("Input file").required();
 	parser.add_argument("-o", "--output").help("Output file").default_value(std::string("a.out"));
-	parser.add_argument("-kc", "--keep-cpp").help("Keep the translated C++").default_value(false);
+	parser.add_argument("-kc", "--keep-cpp").help("Keep the translated C++").default_value(false).implicit_value(true);
 	parser.add_argument("-v", "--verbose").help("Verbose output").default_value(false).implicit_value(true);
 	parser.add_argument("-prod").help("Heavy optimization").default_value(false).implicit_value(true);
 	parser.add_argument("-s", "--static").help("Static linking").default_value(false).implicit_value(true);
@@ -169,10 +170,10 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "typedef double f64;" "\n"
 "typedef std::string str;\n" "\n"
 
-"void println(str s) { std::cout << s << std::endl; }" "\n"
-"void print(str s) { std::cout << s; }" "\n"
-"void println(str& s) { std::cout << s << std::endl; }" "\n"
-"void print(str& s) { std::cout << s; }\n" "\n";
+"static inline void println(str s) { std::cout << s << std::endl; }" "\n"
+"static inline void print(str s) { std::cout << s; }" "\n"
+"static inline void println(str& s) { std::cout << s << std::endl; }" "\n"
+"static inline void print(str& s) { std::cout << s; }\n" "\n";
 
 	if (has_vecs) {
 		LOG_IF_V("Creating Vec header");
@@ -181,6 +182,9 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 
 	bool in_string = false;
 	unsigned int current_line = 0;
+
+	std::regex index_for = std::regex("\\s*for +\\((\\S+) +(\\S+) +in +(\\S+) *\\.{2} *(\\S+) *\\) *(\\{)?");
+	std::regex range_for = std::regex("\\s*for +\\((\\S+) +(\\S+) +in +(\\S+) *\\) *(\\{)?");
 
 	LOG_IF_V("Translating file");
 
@@ -204,29 +208,35 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 
 		if (!in_string && c == '\n') {
 
-			std::vector<int> quotes = find_quotes(ss.str());
+			if (std::string n = std::regex_replace(ss.str(), index_for, "for ($1 $2 = $3; $2 < $4; $2++) $5\n"); n != ss.str()) {
+				output << n;
+			} else if (std::string n = std::regex_replace(ss.str(), range_for, "for ($1 $2 : $3) $4\n"); n != ss.str()) {
+				output << n;
+			} else {
+				std::vector<int> quotes = find_quotes(ss.str());
 
-			bool formatting = false;
-			if (quotes.size() != 0) {
-				for (int i = 0; i < quotes.size(); i += 2) {
-					if (ss.str().substr(quotes[i], quotes[i+1]-quotes[i]+2).find('{') != std::string::npos) {
-						formatting = true;
-						break;
+				bool formatting = false;
+				if (quotes.size() != 0) {
+					for (int i = 0; i < quotes.size(); i += 2) {
+						if (ss.str().substr(quotes[i], quotes[i+1]-quotes[i]+2).find('{') != std::string::npos) {
+							formatting = true;
+							break;
+						}
 					}
 				}
-			}
 
-			if (!formatting) {
-				output << ss.str() << "\n";
-			} else {
-				output << ss.str().substr(0, quotes[0]);
-				for (int i = 0; i < quotes.size(); i += 2) {
-					std::optional<std::string> format = format_string(ss.str().substr(quotes[i], quotes[i+1]-quotes[i]+2));
-					if (format.has_value()) {
-						output << format.value() << (i == quotes.size()-1 ? ss.str().substr(quotes[i+1]+1) : ss.str().substr(quotes[i+1]+1, quotes[i+2]-quotes[i+1]-1)) << '\n';
-					} else {
-						std::cout << RED << '[' << "ERROR" << "] No ending bracket for format string\n " << RESET << "--> " << input_file << ":" << current_line << "\n\t" << ss.str().substr(quotes[i], quotes[i+1]-quotes[i]+1) << std::endl;
-						return 3;
+				if (!formatting) {
+					output << ss.str() << "\n";
+				} else {
+					output << ss.str().substr(0, quotes[0]);
+					for (int i = 0; i < quotes.size(); i += 2) {
+						std::optional<std::string> format = format_string(ss.str().substr(quotes[i], quotes[i+1]-quotes[i]+2));
+						if (format.has_value()) {
+							output << format.value() << (i == quotes.size()-1 ? ss.str().substr(quotes[i+1]+1) : ss.str().substr(quotes[i+1]+1, quotes[i+2]-quotes[i+1]-1)) << '\n';
+						} else {
+							std::cout << RED << '[' << "ERROR" << "] No ending bracket for format string\n " << RESET << "--> " << input_file << ":" << current_line << "\n\t" << ss.str().substr(quotes[i], quotes[i+1]-quotes[i]+1) << std::endl;
+							return 3;
+						}
 					}
 				}
 			}
