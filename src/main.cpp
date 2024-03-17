@@ -4,12 +4,15 @@
 extern char **environ;
 
 const std::string vec_impl =
-"template<typename T>" "\n"
+"template<typename T, typename Alloc = std::allocator<T>>" "\n"
 "class Vec {" "\n"
 "	std::vector<T> v;" "\n"
 "public:" "\n"
 "	Vec(std::initializer_list<T> init) {" "\n"
 "		this->v = std::vector<T>(init);" "\n"
+"	}" "\n"
+"	Vec() {" "\n"
+"		this->v = std::vector<T>();" "\n"
 "	}" "\n"
 "	inline u64 len() {" "\n"
 "		return this->v.size();" "\n"
@@ -21,7 +24,7 @@ const std::string vec_impl =
 "	typename std::vector<T>::iterator end() { return this->v.end(); }" "\n"
 
 "	template<typename U>" "\n"
-"	U operator[](U i) {" "\n"
+"	T operator[](U i) {" "\n"
 "		if (i >= this->len()) {" "\n"
 "			std::cout << RED << \"[RUNTIME] Index out of bounds: len is \" << this->len() << \", index is \" << i << RESET << std::endl;" "\n"
 "			exit(101);" "\n"
@@ -221,17 +224,18 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "		return std::move(std::to_string(this->val));" "\n"
 "	}\n" "\n"
 
-"	inline void operator =(const T other) { this->val = other; }\n" "\n"
+"	inline void operator =(T other) { this->val = other; }\n" "\n"
 
-"	inline T operator -(const T other) { return std::move(Number(this->val - other.val)); }" "\n"
-"	inline T operator +(const T other) { return std::move(Number(this->val + other.val)); }" "\n"
-"	inline T operator /(const T other) { return std::move(Number(this->val / other.val)); }" "\n"
-"	inline T operator *(const T other) { return std::move(Number(this->val * other.val)); }\n" "\n"
+"	inline void operator -=(Number other) { this->val -= other.val; }" "\n"
+"	inline void operator +=(Number other) { this->val += other.val; }" "\n"
+"	inline void operator /=(Number other) { this->val /= other.val; }" "\n"
+"	inline void operator *=(Number other) { this->val *= other.val; }\n" "\n"
 
-"	inline void operator -=(const T other) { this->val -= other.val; }" "\n"
-"	inline void operator +=(const T other) { this->val += other.val; }" "\n"
-"	inline void operator /=(const T other) { this->val /= other.val; }" "\n"
-"	inline void operator *=(const T other) { this->val *= other.val; }\n" "\n"
+"	inline void operator ++() { this->val++; }" "\n"
+"	inline void operator --() { this->val--; }" "\n"
+
+"	inline void operator ++(int) { this->val++; }" "\n"
+"	inline void operator --(int) { this->val--; }" "\n"
 
 "};\n" "\n"
 
@@ -266,9 +270,10 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "};\n" "\n"
 
 "static inline void println(const str s) { std::cout << s << std::endl; }" "\n"
-"static inline void print(const str s) { std::cout << s; }" "\n"
+"static inline void print(const str s) { std::cout << s; }\n" "\n"
 
-"std::string scan() { std::string t; std::getline(std::cin, t); return std::move(t); }" "\n";
+"template <typename T = std::string>" "\n"
+"T scan() { std::string t; std::getline(std::cin, t); return T(t); }\n" "\n";
 
 	if (has_vecs) {
 		LOG_IF_V("Creating Vec header");
@@ -278,8 +283,12 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 	bool in_string = false;
 	unsigned int current_line = 0;
 
-	std::regex index_for = std::regex("\\s*for +\\((\\S+) +(\\S+) +in +(\\S+) *\\.{2} *(\\S+) *\\) *(\\{)?");
-	std::regex range_for = std::regex("\\s*for +\\((\\S+) +(\\S+) +in +(\\S+) *\\) *(\\{)?");
+	std::regex index_for = std::regex("^\\s*for +\\((\\S+) +(\\S+) +in +(\\S+) *\\.{2} *(\\S+) *\\) *(\\{)?");
+	std::regex index_for_inclusive = std::regex("^\\s*for +\\((\\S+) +(\\S+) +in +(\\S+) *\\.{2}= *(\\S+) *\\) *(\\{)?");
+	std::regex range_for = std::regex("^\\s*for +\\((\\S+) +(\\S+) +in +(\\S+) *\\) *(\\{)?");
+
+	std::regex int_main = std::regex("^\\s*i32\\s+main\\(\\s*\\)\\s*\\{?[^\\n\\r]*");
+	std::regex int_args_main = std::regex("^\\s*i32\\s+main\\(\\s*Vec\\s*<\\s*str\\s*>\\s*(\\S+)\\)\\s*\\{?[^\\n\\r]*");
 
 	LOG_IF_V("Translating file");
 
@@ -303,7 +312,13 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 
 		if (!in_string && c == '\n') {
 
-			if (std::string n = std::regex_replace(ss.str(), index_for, "for ($1 $2 = $3; $2 < $4; $2++) $5\n"); n != ss.str()) {
+			if (std::string n = std::regex_replace(ss.str(), int_args_main, "int main(int argc, char** argv) {\n\n\tVec<str> $1;\n\tfor (int i = 0; i < argc; i++) {\n\t\t$1 << argv[i];\n\t}\n"); n != ss.str()) {
+				output << n;
+			} else if (std::string n = std::regex_replace(ss.str(), int_main, "int main() {\n"); n != ss.str()) {
+				output << n;
+			} else if (std::string n = std::regex_replace(ss.str(), index_for_inclusive, "for ($1 $2 = $3; $2 <= $4; $2++) $5\n"); n != ss.str()) {
+				output << n;
+			} else if (std::string n = std::regex_replace(ss.str(), index_for, "for ($1 $2 = $3; $2 < $4; $2++) $5\n"); n != ss.str()) {
 				output << n;
 			} else if (std::string n = std::regex_replace(ss.str(), range_for, "for ($1 $2 : $3) $4\n"); n != ss.str()) {
 				output << n;
