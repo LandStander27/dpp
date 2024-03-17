@@ -48,7 +48,7 @@ const std::string vec_impl =
 "		this->v.push_back(t);" "\n"
 "	}" "\n"
 "	template<typename U>" "\n"
-"	T operator[](U i) {" "\n"
+"	T& operator[](U i) {" "\n"
 "		if (i >= this->len()) {" "\n"
 "			panic(\"Index out of bounds: len is \" + this->len().to_string() + \", index is \" + std::to_string(i));" "\n"
 "		}" "\n"
