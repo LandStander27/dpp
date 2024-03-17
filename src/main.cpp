@@ -26,8 +26,7 @@ const std::string vec_impl =
 "	template<typename U>" "\n"
 "	T operator[](U i) {" "\n"
 "		if (i >= this->len()) {" "\n"
-"			std::cout << RED << \"[RUNTIME] Index out of bounds: len is \" << this->len() << \", index is \" << i << RESET << std::endl;" "\n"
-"			exit(101);" "\n"
+"			panic(\"Index out of bounds: len is \" + this->len().to_string() + \", index is \" + std::to_string(i));" "\n"
 "		}" "\n"
 "		return this->v[i];" "\n"
 "	}" "\n"
@@ -273,7 +272,9 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "static inline void print(const str s) { std::cout << s; }\n" "\n"
 
 "template <typename T = std::string>" "\n"
-"T scan() { std::string t; std::getline(std::cin, t); return T(t); }\n" "\n";
+"T scan() { std::string t; std::getline(std::cin, t); return T(t); }\n" "\n"
+
+"[[noreturn]] void panic(std::string msg) { std::cout << RED << \"[PANIC] \" + msg + RESET << std::endl; exit(101); }\n" "\n";
 
 	if (has_vecs) {
 		LOG_IF_V("Creating Vec header");
