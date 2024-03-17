@@ -207,6 +207,12 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "		this->val = val;" "\n"
 "	}\n" "\n"
 
+"	Number(const std::string& val) {" "\n"
+"		std::stringstream ss;" "\n"
+"		ss << val;" "\n"
+"		ss >> this->val;" "\n"
+"	}\n" "\n"
+
 "	operator T() {" "\n"
 "		return this->val;" "\n"
 "	}\n" "\n"
@@ -231,32 +237,32 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 
 "class i32 : public Number<int> {" "\n"
 "public:" "\n"
-"	i32(int val) : Number(val) {}" "\n"
+"	using Number::Number;" "\n"
 "};\n" "\n"
 
 "class i64 : public Number<long long> {" "\n"
 "public:" "\n"
-"	i64(long long val) : Number(val) {}" "\n"
+"	using Number::Number;" "\n"
 "};\n" "\n"
 
 "class u32 : public Number<unsigned int> {" "\n"
 "public:" "\n"
-"	u32(unsigned int val) : Number(val) {}" "\n"
+"	using Number::Number;" "\n"
 "};\n" "\n"
 
 "class u64 : public Number<unsigned long long> {" "\n"
 "public:" "\n"
-"	u64(unsigned long long val) : Number(val) {}" "\n"
+"	using Number::Number;" "\n"
 "};\n" "\n"
 
 "class f32 : public Number<float> {" "\n"
 "public:" "\n"
-"	f32(float val) : Number(val) {}" "\n"
+"	using Number::Number;" "\n"
 "};\n" "\n"
 
 "class f64 : public Number<double> {" "\n"
 "public:" "\n"
-"	f64(double val) : Number(val) {}" "\n"
+"	using Number::Number;" "\n"
 "};\n" "\n"
 
 "static inline void println(const str s) { std::cout << s << std::endl; }" "\n"
