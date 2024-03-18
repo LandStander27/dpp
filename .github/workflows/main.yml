@@ -1,0 +1,29 @@
+name: Build compiler
+on:
+    push:
+        branches:
+            - master
+        paths-ignore:
+            - 'README.md'
+            - 'LICENSE'
+            - '.gitignore'
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v4
+
+        - name: Install make
+          run: sudo apt install make
+
+        - name: Install g++
+          run: sudo apt install g++
+
+        - name: Build compiler
+          run: make
+
+        - uses: actions/upload-artifact@v4
+          with:
+            name: D++
+            path: bin/d++
