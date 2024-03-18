@@ -141,6 +141,7 @@ int main(int argc, char** argv) {
 	parser.add_argument("-v", "--verbose").help("Verbose output").default_value(false).implicit_value(true);
 	parser.add_argument("-prod").help("Heavy optimization").default_value(false).implicit_value(true);
 	parser.add_argument("-s", "--static").help("Static linking").default_value(false).implicit_value(true);
+	parser.add_argument("-r", "--run").help("Run the compiled program").default_value(false).implicit_value(true);
 
 	try {
 		parser.parse_args(argc, argv);
@@ -161,6 +162,8 @@ int main(int argc, char** argv) {
 		std::cout << "Invalid file" << std::endl;
 		return 2;
 	}
+
+	LOG("Compiling " << input_file);
 
 	LOG_IF_V("Opening file " << input_file);
 
@@ -502,7 +505,21 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 		for (const auto& l : lines) {
 			if (l[1] == line) {
 				std::string filename = (m[1] == name) ? input_file : (m[1].str() + "." + m[4].str() + m[5].str());
-				std::cout << RED << "[ERROR]: " << m[7] << "\n\t--> " << filename << ":" << l[0] << RESET << std::endl;
+				std::cout << RED << "[ERROR]: " << m[7];
+				if (m[7].str().find("which is of non-class type ‘int’") != std::string::npos) {
+					std::cout << ", did you mean i32?";
+				} else if (m[7].str().find("which is of non-class type ‘float’") != std::string::npos) {
+					std::cout << ", did you mean f32?";
+				} else if (m[7].str().find("which is of non-class type ‘double’") != std::string::npos) {
+					std::cout << ", did you mean f64?";
+				} else if (m[7].str().find("which is of non-class type ‘unsigned int’") != std::string::npos) {
+					std::cout << ", did you mean u32?";
+				} else if (m[7].str().find("which is of non-class type ‘unsigned long long’") != std::string::npos) {
+					std::cout << ", did you mean u64?";
+				} else if (m[7].str().find("which is of non-class type ‘long long’") != std::string::npos) {
+					std::cout << ", did you mean i64?";
+				}
+				std::cout << "\n\t--> " << filename << ":" << l[0] << RESET << std::endl;
 				break;
 			}
 		}
@@ -518,6 +535,14 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 		std::remove((name + ".cpp").c_str());
 	}
 
-	return err ? -1 : 0;
+	if (parser["--run"] == true) {
+		int status = system(("./" + name).c_str())/255;
+		if (status != 0) {
+			std::cout << RED << "[ERROR] Program exited with status: " << status << RESET << std::endl;
+			return status;
+		}
+	} else {
+		return err ? -1 : 0;
+	}
 
 }
