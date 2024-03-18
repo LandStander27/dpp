@@ -32,4 +32,4 @@ pid_t waitpid(pid_t pid, int* status, int options);
 #define GREEN "\x1b[92m"
 #define BLUE "\x1b[94m"
 
-#define LOG(x) std::cout << BLUE << "[INFO] " << x << RESET << std::endl
+#define LOG(x) std::cout << BLUE << "[INFO ] " << x << RESET << std::endl

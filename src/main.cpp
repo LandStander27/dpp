@@ -116,6 +116,21 @@ std::vector<int> find_quotes(std::string s) {
 	return ret;
 }
 
+std::string spawn(std::string cmd) {
+	std::array<char, 128> buffer;
+	std::string result;
+	std::shared_ptr<FILE> pipe(popen((cmd + " 2>&1").c_str(), "r"), pclose);
+	if (!pipe) {
+		throw std::runtime_error("popen() failed!");
+	}
+	while (!feof(pipe.get())) {
+		if (fgets(buffer.data(), 128, pipe.get()) != nullptr) {
+			result += buffer.data();
+		}
+	}
+	return result;
+}
+
 int main(int argc, char** argv) {
 
 	argparse::ArgumentParser parser = argparse::ArgumentParser("D++ compiler");
@@ -356,13 +371,17 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 
 	LOG_IF_V("Translating file");
 
+	std::vector<std::vector<unsigned long long>> lines;
+
 	char c;
 	while (file >> c) {
 
 		if (c == '\r') {
 			continue;
 		} else if (c == '\n') {
+			unsigned long long output_line = ({std::string s = output.str(); std::count(s.begin(), s.end(), '\n')+1;});
 			current_line++;
+			lines.push_back({ current_line, output_line });
 		}
 
 		if (c == '"' && (ss.str().back() != '\\' || ss.str().size() == 0)) {
@@ -426,6 +445,7 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 	file.close();
 
 	output << ss.str();
+	lines.push_back({ current_line, (unsigned long long)({std::string s = output.str(); std::count(s.begin(), s.end(), '\n')+1;}) });
 
 	std::string name = parser.get<std::string>("--output");
 
@@ -435,40 +455,69 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 
 	LOG_IF_V("Spawning g++");
 
-	pid_t pid;
-	std::vector<std::string> gcc_args = { "g++", name + ".cpp", "-o", name };
+	// pid_t pid;
+	// std::vector<std::string> gcc_args = { "g++", name + ".cpp", "-o", name };
+	// if (parser["-prod"] == true) {
+	// 	LOG_IF_V("Compiling with -O3");
+	// 	gcc_args.push_back("-O3");
+	// }
+
+	// if (parser["--static"] == true) {
+	// 	LOG_IF_V("Compiling with -static");
+	// 	gcc_args.push_back("-static");
+	// }
+
+	// char** gcc_argsc = (char**)malloc(sizeof(char*)*(gcc_args.size()+1));
+	// for (int i = 0; i < gcc_args.size(); i++) {
+	// 	gcc_argsc[i] = (char*)gcc_args[i].c_str();
+	// }
+	// gcc_argsc[gcc_args.size()] = NULL;
+
+	// int status = posix_spawn(&pid, "/usr/bin/g++", NULL, NULL, gcc_argsc, environ);
+
+	// LOG_IF_V("Waiting for g++");
+	// waitpid(pid, &status, 0);
+
+	// free((void*)gcc_argsc);
+
+	std::string gcc_args = "g++ " + name + ".cpp -o" + name;
 	if (parser["-prod"] == true) {
 		LOG_IF_V("Compiling with -O3");
-		gcc_args.push_back("-O3");
+		name += " -O3";
 	}
 
 	if (parser["--static"] == true) {
 		LOG_IF_V("Compiling with -static");
-		gcc_args.push_back("-static");
+		name += " -static";
 	}
 
-	char** gcc_argsc = (char**)malloc(sizeof(char*)*(gcc_args.size()+1));
-	for (int i = 0; i < gcc_args.size(); i++) {
-		gcc_argsc[i] = (char*)gcc_args[i].c_str();
+	std::string gcc_output = spawn(gcc_args);
+
+	std::regex error_regex = std::regex("(.+(\\/|\\\\)(.+))\\.(c|h)(pp)?:([0-9]+):[0-9]+: error: (.+)");
+	std::smatch m;
+	bool err = false;
+	if (std::regex_search(gcc_output, m, error_regex)) {
+		err = true;
+		int line = std::stoi(m[6]);
+		for (const auto& l : lines) {
+			if (l[1] == line) {
+				std::string filename = (m[1] == name) ? input_file : (m[1].str() + "." + m[4].str() + m[5].str());
+				std::cout << RED << "[ERROR]: " << m[7] << "\n\t--> " << filename << ":" << l[0] << RESET << std::endl;
+				break;
+			}
+		}
 	}
-	gcc_argsc[gcc_args.size()] = NULL;
 
-	int status = posix_spawn(&pid, "/usr/bin/g++", NULL, NULL, gcc_argsc, environ);
-
-	LOG_IF_V("Waiting for g++");
-	waitpid(pid, &status, 0);
-
-	free((void*)gcc_argsc);
-
-	std::chrono::duration<double> elapsed = std::chrono::system_clock::now().time_since_epoch() - start;
+	if (!err) {
+		std::chrono::duration<double> elapsed = std::chrono::system_clock::now().time_since_epoch() - start;
+		std::cout << GREEN << "[DONE ] Compiled in " << round(elapsed.count()*1000) << "ms" << RESET << std::endl;
+	}
 
 	if (parser["--keep-cpp"] == false) {
 		LOG_IF_V("Deleting " << name + ".cpp");
 		std::remove((name + ".cpp").c_str());
 	}
 
-	std::cout << GREEN << "[DONE] Compiled in " << round(elapsed.count()*1000) << "ms" << RESET << std::endl;
-
-	return 0;
+	return err ? -1 : 0;
 
 }
