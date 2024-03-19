@@ -22,9 +22,11 @@ i32 main() {
 i32 main() {
 	print("String: ");
 	str a = scan();
+	println(a);
 
 	print("Integer: ");
-	i32 b = scan<i32>();
+	i32 b = scan<i32>(); // Just using scan() should also work.
+	println<i32>(b);
 }
 ```
 
@@ -80,4 +82,19 @@ i32 main() {
 	print("\n");
 }
 ```
+
+- Panics
+```
+i32 main() {
+	f64 first = scan();
+	f64 second = scan();
+
+	if (second == 0) {
+		panic("Cannot divide by zero.");
+	}
+
+	println("First / Second: {first/second}");
+}
+```
+
 - Everything else is exactly like C++

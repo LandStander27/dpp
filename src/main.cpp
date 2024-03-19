@@ -306,6 +306,11 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "	inline void operator /=(Number other) { this->val /= other.val; }" "\n"
 "	inline void operator *=(Number other) { this->val *= other.val; }\n" "\n"
 
+"	inline Number operator -(Number other) { return this->val - other.val; }" "\n"
+"	inline Number operator +(Number other) { return this->val + other.val; }" "\n"
+"	inline Number operator /(Number other) { return this->val / other.val; }" "\n"
+"	inline Number operator *(Number other) { return this->val * other.val; }\n" "\n"
+
 "	inline void operator ++() { this->val++; }" "\n"
 "	inline void operator --() { this->val--; }" "\n"
 
@@ -355,7 +360,7 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 "template <typename T = str>" "\n"
 "T scan() { std::string t; std::getline(std::cin, t); return T(t); }\n" "\n"
 
-"[[noreturn]] void panic(str msg) { std::cout << \"\\x1b[31m\" << \"[PANIC] \" + msg + \"\\x1b[0m\" << std::endl; exit(101); }\n" "\n";
+"[[noreturn]] void panic(str msg, int line) { std::cout << \"\\x1b[31m\" << \"[PANIC]: \" << msg << \"\\n\\t--> Line \" << line << \"\\x1b[0m\" << std::endl; exit(101); }\n" "\n";
 
 	if (has_vecs) {
 		LOG_IF_V("Creating Vec header");
@@ -371,6 +376,8 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 
 	std::regex int_main = std::regex("^\\s*i32\\s+main\\(\\s*\\)\\s*\\{?[^\\n\\r]*");
 	std::regex int_args_main = std::regex("^\\s*i32\\s+main\\(\\s*Vec\\s*<\\s*str\\s*>\\s*(\\S+)\\)\\s*\\{?[^\\n\\r]*");
+
+	std::regex panic_call = std::regex("\\s*panic\\s*\\(\\s*\"(.*)\"\\s*\\)\\s*;");
 
 	LOG_IF_V("Translating file");
 
@@ -407,6 +414,8 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 			} else if (std::string n = std::regex_replace(ss.str(), index_for, "for ($1 $2 = $3; $2 < $4; $2++) $5\n"); n != ss.str()) {
 				output << n;
 			} else if (std::string n = std::regex_replace(ss.str(), range_for, "for ($1 $2 : $3) $4\n"); n != ss.str()) {
+				output << n;
+			} else if (std::string n = std::regex_replace(ss.str(), panic_call, "panic(\"$1\", " + std::to_string(current_line) + ");\n"); n != ss.str()) {
 				output << n;
 			} else {
 				std::vector<int> quotes = find_quotes(ss.str());
@@ -483,17 +492,18 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 
 	// free((void*)gcc_argsc);
 
-	std::string gcc_args = "g++ " + name + ".cpp -o" + name;
+	std::string gcc_args = "g++ " + name + ".cpp -o " + name;
 	if (parser["-prod"] == true) {
 		LOG_IF_V("Compiling with -O3");
-		name += " -O3";
+		gcc_args += " -O3 ";
 	}
 
 	if (parser["--static"] == true) {
 		LOG_IF_V("Compiling with -static");
-		name += " -static";
+		gcc_args += " -static ";
 	}
 
+	LOG_IF_V(gcc_args);
 	std::string gcc_output = spawn(gcc_args);
 
 	std::regex error_regex = std::regex("(.+(\\/|\\\\)(.+))\\.(c|h)(pp)?:([0-9]+):[0-9]+: error: (.+)");
@@ -502,6 +512,7 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 	if (std::regex_search(gcc_output, m, error_regex)) {
 		err = true;
 		int line = std::stoi(m[6]);
+		bool found = false;
 		for (const auto& l : lines) {
 			if (l[1] == line) {
 				std::string filename = (m[1] == name) ? input_file : (m[1].str() + "." + m[4].str() + m[5].str());
@@ -520,8 +531,12 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 					std::cout << ", did you mean i64?";
 				}
 				std::cout << "\n\t--> " << filename << ":" << l[0] << RESET << std::endl;
+				found = true;
 				break;
 			}
+		}
+		if (!found) {
+			std::cout << RED << "[ERROR]: " << m[7] << "\n\t--> " << m[1] << "." << m[4] << m[5] << ":" << m[6] << "\n\tThis error is a problem with the compiler, please run again with --keep-cpp and report the generated C++." << RESET << std::endl;
 		}
 	}
 
@@ -535,7 +550,8 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 		std::remove((name + ".cpp").c_str());
 	}
 
-	if (parser["--run"] == true) {
+	if (parser["--run"] == true && !err) {
+		LOG_IF_V("Running compiled binary");
 		int status = system(("./" + name).c_str())/255;
 		if (status != 0) {
 			std::cout << RED << "[ERROR] Program exited with status: " << status << RESET << std::endl;
