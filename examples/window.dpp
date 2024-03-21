@@ -1,0 +1,16 @@
+#include <graphics.dpp>
+
+i32 main() {
+
+	Window window = Window("D++ graphics test", 500, 500);
+
+	while (!window.should_close()) {
+		window.clear({ 255, 255, 255 });
+
+		Point pos = window.mouse_position();
+		window.draw_rectangle(pos.x-50, pos.y-50, 100, 100, { 255, 0, 0 });
+
+		window.update();
+	}
+
+} // Compile with --graphics (only works on windows)

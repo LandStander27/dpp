@@ -307,10 +307,12 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
+	#ifndef _WIN32
 	if (parser["--graphics"] == true) {
 		std::cout << "Graphics library is only supported on Windows for now" << std::endl;
 		return 4;
 	}
+	#endif
 
 	std::string input_file = parser.get<std::string>("input_file");
 

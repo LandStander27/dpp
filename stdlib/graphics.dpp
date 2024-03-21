@@ -61,6 +61,12 @@ public:
 		return glfwWindowShouldClose(this->data);
 	}
 
+	Point mouse_position() {
+		double x, y;
+		glfwGetCursorPos(this->data, &x, &y);
+		return { f32(x), f32(y) };
+	}
+
 	void update() {
 		glFlush();
 
@@ -71,6 +77,11 @@ public:
 	}
 
 	void clear() {
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
+
+	void clear(Color color) {
+		glClearColor(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
 

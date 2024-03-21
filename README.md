@@ -6,6 +6,21 @@ Extremely simple compiled language.
 
 ## Getting Started
 
+### Building
+- Windows
+```
+git clone https://github.com/LandStander27/dpp
+cd dpp
+make windows-build
+```
+
+- Linux
+```
+git clone https://github.com/LandStander27/dpp
+cd dpp
+make build
+```
+Built binaries will be in ./bin
 ### Usage
 
 Examples:
@@ -98,3 +113,4 @@ i32 main() {
 ```
 
 - Everything else is exactly like C++
+- For more in-depth examples take a look at [Examples](https://github.com/LandStander27/dpp/examples)
