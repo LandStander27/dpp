@@ -113,4 +113,4 @@ i32 main() {
 ```
 
 - Everything else is exactly like C++
-- For more in-depth examples take a look at [Examples](https://github.com/LandStander27/dpp/examples)
+- For more in-depth examples take a look at [Examples](https://github.com/LandStander27/dpp/tree/master/examples)
