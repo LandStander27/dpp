@@ -1,8 +1,6 @@
 #include "defs.hpp"
 #include "argparse/argparse.hpp"
 
-extern char **environ;
-
 const std::string vec_impl =
 "template<typename T, typename Alloc = std::allocator<T>>" "\n"
 "class Vec {" "\n"
@@ -131,40 +129,7 @@ std::string spawn(std::string cmd) {
 	return result;
 }
 
-int main(int argc, char** argv) {
-
-	argparse::ArgumentParser parser = argparse::ArgumentParser("D++ compiler");
-
-	parser.add_argument("input_file").help("Input file").required();
-	parser.add_argument("-o", "--output").help("Output file").default_value(std::string("a.out"));
-	parser.add_argument("-kc", "--keep-cpp").help("Keep the translated C++").default_value(false).implicit_value(true);
-	parser.add_argument("-v", "--verbose").help("Verbose output").default_value(false).implicit_value(true);
-	parser.add_argument("-prod").help("Heavy optimization").default_value(false).implicit_value(true);
-	parser.add_argument("-s", "--static").help("Static linking").default_value(false).implicit_value(true);
-	parser.add_argument("-r", "--run").help("Run the compiled program").default_value(false).implicit_value(true);
-
-	try {
-		parser.parse_args(argc, argv);
-	} catch (const std::exception& err) {
-		std::cout << err.what() << std::endl;
-		std::cout << parser;
-		return 1;
-	}
-
-	std::string input_file = parser.get<std::string>("input_file");
-
-	if (!std::filesystem::exists(input_file)) {
-		std::cout << "Input file does not exist" << std::endl;
-		return 2;
-	}
-
-	if (!std::filesystem::is_regular_file(input_file)) {
-		std::cout << "Invalid file" << std::endl;
-		return 2;
-	}
-
-	LOG("Compiling " << input_file);
-
+std::tuple<std::string, std::vector<std::vector<unsigned long long>>> translate(std::string input_file, argparse::ArgumentParser& parser, bool is_topmost) {
 	LOG_IF_V("Opening file " << input_file);
 
 	std::ifstream file = std::ifstream(input_file);
@@ -178,194 +143,37 @@ int main(int argc, char** argv) {
 
 	bool has_vecs = false;
 
-	std::chrono::duration<double> start = std::chrono::system_clock::now().time_since_epoch();
-
 	LOG_IF_V("Reading file " << input_file);
 
 	int size = std::filesystem::file_size(input_file);
 	std::string* entire_file = new std::string(size, '\0');
 	file.read(entire_file->data(), size);
-	file.seekg(0, file.beg);
+	file.close();
+	file.open(input_file);
 
-	LOG_IF_V("Testing Vec existence");
+	std::stringstream output;
 
-	if (entire_file->find("Vec") != std::string::npos) {
-		has_vecs = true;
+	if (is_topmost) {
+		LOG_IF_V("Testing Vec existence");
+
+		if (entire_file->find("Vec") != std::string::npos) {
+			has_vecs = true;
+		}
+
+		LOG_IF_V("Creating header");
+
+		if (has_vecs) {
+			output << "#include <vector>" "\n";
+		}
+		output << default_header;
+
+		if (has_vecs) {
+			LOG_IF_V("Creating Vec header");
+			output << vec_impl << '\n';
+		}
 	}
 
 	free(entire_file);
-
-	LOG_IF_V("Creating header");
-
-	std::stringstream output;
-	output <<
-"#include <iostream>" "\n";
-if (has_vecs) { output << "#include <vector>" "\n"; }
-	output <<
-"#include <sstream>\n" "\n"
-
-"class u64;" "\n"
-
-"class str {" "\n"
-"	std::string val;\n" "\n"
-
-"public:" "\n"
-"	str() {" "\n"
-"		this->val = \"\";" "\n"
-"	}" "\n"
-"	template <typename T>" "\n"
-"	str(T val) {" "\n"
-"		this->val = val.to_string().data();" "\n"
-"	}" "\n"
-"	str(const std::string val) {" "\n"
-"		this->val = val;" "\n"
-"	}" "\n"
-"	str(char* val) {" "\n"
-"		this->val = val;" "\n"
-"	}" "\n"
-"	str(const char* val) {" "\n"
-"		this->val = val;" "\n"
-"	}" "\n"
-"	str(const char val) {" "\n"
-"		this->val = val;" "\n"
-"	}" "\n"
-"	template <typename T = u64>" "\n"
-"	inline T len() {" "\n"
-"		return T(this->val.size());" "\n"
-"	}" "\n"
-"	inline str display() {" "\n"
-"		return str(this->val);" "\n"
-"	}" "\n"
-"	str operator[](unsigned long long i) {" "\n"
-"		return str(this->val[i]);" "\n"
-"	}" "\n"
-"	str operator+(const str& other) {" "\n"
-"		return str(this->val + other.val);" "\n"
-"	}" "\n"
-"	str operator+(const char* other) {" "\n"
-"		return str(this->val + other);" "\n"
-"	}" "\n"
-"	bool operator==(const str& other) {" "\n"
-"		return this->val == other.val;" "\n"
-"	}" "\n"
-"	std::string data() {" "\n"
-"		return this->val;" "\n"
-"	}" "\n"
-"	char* begin() { return &(this->val[0]); }" "\n"
-"	char* end() { return &(this->val[this->val.size()]); }\n" "\n"
-
-"	friend std::ostream& operator<<(std::ostream& os, str str);" "\n"
-"};\n" "\n"
-
-"str operator+(const char* a, const str& b) {" "\n"
-"	return str(a) + b;" "\n"
-"}\n" "\n"
-
-"std::ostream& operator<<(std::ostream& os, str str) {" "\n"
-"	os << str.val;" "\n"
-"	return os;" "\n"
-"}\n" "\n"
-
-"template <typename T>" "\n"
-"class Number {" "\n"
-"	T val;\n" "\n"
-
-"public:" "\n"
-"	Number(T val) {" "\n"
-"		this->val = val;" "\n"
-"	}\n" "\n"
-
-"	Number() {" "\n"
-"		this->val = 0;" "\n"
-"	}\n" "\n"
-
-"	Number(const str& val) {" "\n"
-"		std::stringstream ss;" "\n"
-"		ss << val;" "\n"
-"		ss >> this->val;" "\n"
-"	}\n" "\n"
-
-"	operator T() {" "\n"
-"		return this->val;" "\n"
-"	}\n" "\n"
-
-"	str to_string() {" "\n"
-"		return str(std::to_string(this->val));" "\n"
-"	}\n" "\n"
-
-"	str display() {" "\n"
-"		return str(*this);" "\n"
-"	}\n" "\n"
-
-"	inline bool operator ==(Number other) { return this->val == other.val; }" "\n"
-"	inline bool operator ==(T other) { return this->val == other; }" "\n"
-"	inline void operator =(T other) { this->val = other; }\n" "\n"
-
-"	inline void operator -=(Number other) { this->val -= other.val; }" "\n"
-"	inline void operator +=(Number other) { this->val += other.val; }" "\n"
-"	inline void operator /=(Number other) { this->val /= other.val; }" "\n"
-"	inline void operator *=(Number other) { this->val *= other.val; }\n" "\n"
-
-"	inline Number operator -(Number other) { return this->val - other.val; }" "\n"
-"	inline Number operator +(Number other) { return this->val + other.val; }" "\n"
-"	inline Number operator /(Number other) { return this->val / other.val; }" "\n"
-"	inline Number operator *(Number other) { return this->val * other.val; }\n" "\n"
-
-"	inline void operator ++() { this->val++; }" "\n"
-"	inline void operator --() { this->val--; }" "\n"
-
-"	inline void operator ++(int) { this->val++; }" "\n"
-"	inline void operator --(int) { this->val--; }" "\n"
-
-"};\n" "\n"
-
-"class i32 : public Number<int> {" "\n"
-"public:" "\n"
-"	using Number::Number;" "\n"
-"};\n" "\n"
-
-"class i64 : public Number<long long> {" "\n"
-"public:" "\n"
-"	using Number::Number;" "\n"
-"};\n" "\n"
-
-"class u32 : public Number<unsigned int> {" "\n"
-"public:" "\n"
-"	using Number::Number;" "\n"
-"};\n" "\n"
-
-"class u64 : public Number<unsigned long long> {" "\n"
-"public:" "\n"
-"	using Number::Number;" "\n"
-"};\n" "\n"
-
-"class f32 : public Number<float> {" "\n"
-"public:" "\n"
-"	using Number::Number;" "\n"
-"};\n" "\n"
-
-"class f64 : public Number<double> {" "\n"
-"public:" "\n"
-"	using Number::Number;" "\n"
-"};\n" "\n"
-
-"template <typename T>" "\n"
-"static inline void println(T s) { std::cout << T(s).display() << std::endl; }" "\n"
-"template <typename T>" "\n"
-"static inline void print(T s) { std::cout << T(s).display(); }\n" "\n"
-
-"static inline void println(const char* s) { std::cout << s << std::endl; }" "\n"
-"static inline void print(const char* s) { std::cout << s; }\n" "\n"
-
-"template <typename T = str>" "\n"
-"T scan() { std::string t; std::getline(std::cin, t); return T(t); }\n" "\n"
-
-"[[noreturn]] void panic(str msg, int line) { std::cout << \"\\x1b[31m\" << \"[PANIC]: \" << msg << \"\\n\\t--> Line \" << line << \"\\x1b[0m\" << std::endl; exit(101); }\n" "\n";
-
-	if (has_vecs) {
-		LOG_IF_V("Creating Vec header");
-		output << vec_impl << '\n';
-	}
 
 	bool in_string = false;
 	unsigned int current_line = 0;
@@ -377,7 +185,10 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 	std::regex int_main = std::regex("^\\s*i32\\s+main\\(\\s*\\)\\s*\\{?[^\\n\\r]*");
 	std::regex int_args_main = std::regex("^\\s*i32\\s+main\\(\\s*Vec\\s*<\\s*str\\s*>\\s*(\\S+)\\)\\s*\\{?[^\\n\\r]*");
 
-	std::regex panic_call = std::regex("\\s*panic\\s*\\(\\s*\"(.*)\"\\s*\\)\\s*;");
+	std::regex panic_call = std::regex("^\\s*\\s*panic\\s*\\(\\s*\"(.*)\"\\s*\\)\\s*;");
+
+	std::regex cpp_include = std::regex("^\\s*#cpp-include\\s+(<|\")(.+)(\"|>)");
+	std::regex normal_include = std::regex("^\\s*#include\\s+(<|\")(.+)(\"|>)");
 
 	LOG_IF_V("Translating file");
 
@@ -385,7 +196,6 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 
 	char c;
 	while (file >> c) {
-
 		if (c == '\r') {
 			continue;
 		} else if (c == '\n') {
@@ -417,6 +227,20 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 				output << n;
 			} else if (std::string n = std::regex_replace(ss.str(), panic_call, "panic(\"$1\", " + std::to_string(current_line) + ");\n"); n != ss.str()) {
 				output << n;
+			} else if (std::string n = std::regex_replace(ss.str(), cpp_include, "#include $1$2$3\n"); n != ss.str()) {
+				output << n;
+			} else if (std::string n = std::regex_replace(ss.str(), normal_include, "$2"); n != ss.str()) {
+				#ifdef _WIN32
+				for (const auto& entry : std::filesystem::directory_iterator(get_binary_path() + "\\include")) {
+				#else
+				for (const auto& entry : std::filesystem::directory_iterator(get_binary_path() + "/include")) {
+				#endif
+					if (entry.path().filename() == n) {
+						auto [translated, other_lines] = translate(entry.path().string(), parser, false);
+						output << translated << '\n';
+						break;
+					}
+				}
 			} else {
 				std::vector<int> quotes = find_quotes(ss.str());
 
@@ -440,7 +264,7 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 							output << format.value() << (i == quotes.size()-1 ? ss.str().substr(quotes[i+1]+1) : ss.str().substr(quotes[i+1]+1, quotes[i+2]-quotes[i+1]-1)) << '\n';
 						} else {
 							std::cout << RED << '[' << "ERROR" << "] No ending bracket for format string\n " << RESET << "--> " << input_file << ":" << current_line << "\n\t" << ss.str().substr(quotes[i], quotes[i+1]-quotes[i]+1) << std::endl;
-							return 3;
+							return std::tuple("err\r", lines);
 						}
 					}
 				}
@@ -458,11 +282,57 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 
 	output << ss.str();
 	lines.push_back({ current_line, (unsigned long long)({std::string s = output.str(); std::count(s.begin(), s.end(), '\n')+1;}) });
+	return std::tuple(output.str(), lines);
+}
+
+int main(int argc, char** argv) {
+
+	argparse::ArgumentParser parser = argparse::ArgumentParser("D++ compiler");
+
+	parser.add_argument("input_file").help("Input file").required().default_value(std::string("./main.dpp"));
+	parser.add_argument("-o", "--output").help("Output file").default_value(std::string("a.out"));
+	parser.add_argument("-kc", "--keep-cpp").help("Keep the translated C++").default_value(false).implicit_value(true);
+	parser.add_argument("-v", "--verbose").help("Verbose output").default_value(false).implicit_value(true);
+	parser.add_argument("-prod").help("Heavy optimization").default_value(false).implicit_value(true);
+	parser.add_argument("-s", "--static").help("Static linking").default_value(false).implicit_value(true);
+	parser.add_argument("-r", "--run").help("Run the compiled program").default_value(false).implicit_value(true);
+	parser.add_argument("-l", "--lib").help("Add a library").default_value<std::vector<std::string>>({}).append();
+	parser.add_argument("--graphics").help("Link graphics dll (use this if you are using the built in \"graphics.dpp\")").default_value(false).implicit_value(true);
+
+	try {
+		parser.parse_args(argc, argv);
+	} catch (const std::exception& err) {
+		std::cout << err.what() << std::endl;
+		std::cout << parser;
+		return 1;
+	}
+
+	if (parser["--graphics"] == true) {
+		std::cout << "Graphics library is only supported on Windows for now" << std::endl;
+		return 4;
+	}
+
+	std::string input_file = parser.get<std::string>("input_file");
+
+	if (!std::filesystem::exists(input_file)) {
+		std::cout << "Input file does not exist" << std::endl;
+		return 2;
+	}
+
+	if (!std::filesystem::is_regular_file(input_file)) {
+		std::cout << "Invalid file" << std::endl;
+		return 2;
+	}
+
+	std::chrono::duration<double> start = std::chrono::system_clock::now().time_since_epoch();
+
+	LOG("Compiling " << input_file);
 
 	std::string name = parser.get<std::string>("--output");
 
 	std::ofstream file_out = std::ofstream(name + ".cpp");
-	file_out << output.str();
+	auto [output, lines] = translate(input_file, parser, true);
+	file_out << output;
 	file_out.close();
 
 	LOG_IF_V("Spawning g++");
@@ -492,7 +362,11 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 
 	// free((void*)gcc_argsc);
 
-	std::string gcc_args = "g++ " + name + ".cpp -o " + name;
+	#ifdef _WIN32
+	std::string gcc_args = "g++.exe " + name + ".cpp -o " + name + " -L" + get_binary_path() + "\\include\\lib_deps -I" + get_binary_path() + "\\include";
+	#else
+	std::string gcc_args = "g++ " + name + ".cpp -o " + name + " -I" + get_binary_path() + "/include";
+	#endif
 	if (parser["-prod"] == true) {
 		LOG_IF_V("Compiling with -O3");
 		gcc_args += " -O3 ";
@@ -503,10 +377,23 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 		gcc_args += " -static ";
 	}
 
+	if (parser["--graphics"] == true) {
+		LOG_IF_V("Compiling with " + get_binary_path() + "\\include\\lib_deps\\libglfw3.a");
+		gcc_args += " " + get_binary_path() + "\\include\\lib_deps\\libglfw3.a ";
+		LOG_IF_V("Compiling with -lgdi32");
+		gcc_args += " -lgdi32 ";
+	}
+
+	for (const auto& lib : parser.get<std::vector<std::string>>("--lib")) {
+		gcc_args += " -l" + lib + " ";
+	}
+
 	LOG_IF_V(gcc_args);
 	std::string gcc_output = spawn(gcc_args);
 
 	std::regex error_regex = std::regex("(.+(\\/|\\\\)(.+))\\.(c|h)(pp)?:([0-9]+):[0-9]+: error: (.+)");
+	std::regex fatal_error_regex = std::regex("(.+(\\/|\\\\)(.+))\\.(c|h)(pp)?:([0-9]+):[0-9]+: fatal error: (.+)");
+
 	std::smatch m;
 	bool err = false;
 	if (std::regex_search(gcc_output, m, error_regex)) {
@@ -538,6 +425,37 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 		if (!found) {
 			std::cout << RED << "[ERROR]: " << m[7] << "\n\t--> " << m[1] << "." << m[4] << m[5] << ":" << m[6] << "\n\tThis error is a problem with the compiler, please run again with --keep-cpp and report the generated C++." << RESET << std::endl;
 		}
+	} else if (std::regex_search(gcc_output, m, fatal_error_regex)) {
+		err = true;
+		int line = std::stoi(m[6]);
+		bool found = false;
+		for (const auto& l : lines) {
+			if (l[1] == line) {
+				std::string filename = (m[1] == name) ? input_file : (m[1].str() + "." + m[4].str() + m[5].str());
+				std::cout << RED << "[ERROR]: " << m[7];
+				if (m[7].str().find("which is of non-class type ‘int’") != std::string::npos) {
+					std::cout << ", did you mean i32?";
+				} else if (m[7].str().find("which is of non-class type ‘float’") != std::string::npos) {
+					std::cout << ", did you mean f32?";
+				} else if (m[7].str().find("which is of non-class type ‘double’") != std::string::npos) {
+					std::cout << ", did you mean f64?";
+				} else if (m[7].str().find("which is of non-class type ‘unsigned int’") != std::string::npos) {
+					std::cout << ", did you mean u32?";
+				} else if (m[7].str().find("which is of non-class type ‘unsigned long long’") != std::string::npos) {
+					std::cout << ", did you mean u64?";
+				} else if (m[7].str().find("which is of non-class type ‘long long’") != std::string::npos) {
+					std::cout << ", did you mean i64?";
+				}
+				std::cout << "\n\t--> " << filename << ":" << l[0] << RESET << std::endl;
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			std::cout << RED << "[ERROR]: " << m[7] << "\n\t--> " << m[1] << "." << m[4] << m[5] << ":" << m[6] << "\n\tThis error is a problem with the compiler, please run again with --keep-cpp and report the generated C++." << RESET << std::endl;
+		}
+	} else if (gcc_output.length() > 1) {
+		std::cout << gcc_output << "\n";
 	}
 
 	if (!err) {
@@ -552,7 +470,11 @@ if (has_vecs) { output << "#include <vector>" "\n"; }
 
 	if (parser["--run"] == true && !err) {
 		LOG_IF_V("Running compiled binary");
+		#ifndef _WIN32
 		int status = system(("./" + name).c_str())/255;
+		#else
+		int status = system(name.c_str());
+		#endif
 		if (status != 0) {
 			std::cout << RED << "[ERROR] Program exited with status: " << status << RESET << std::endl;
 			return status;
