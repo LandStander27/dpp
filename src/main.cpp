@@ -14,7 +14,7 @@ const std::string vec_impl =
 "	}" "\n"
 "	Vec(T val, u64 len) {" "\n"
 "		this->v = std::vector<T>();" "\n"
-"		this->v.reserve(len);" "\n"
+"		this->v.reserve(len.data());" "\n"
 "		for (u64 i = 0; i < len; i++) {" "\n"
 "			this->v.push_back(val);" "\n"
 "		}" "\n"
@@ -399,8 +399,8 @@ int main(int argc, char** argv) {
 	LOG_IF_V(gcc_args);
 	std::string gcc_output = spawn(gcc_args);
 
-	std::regex error_regex = std::regex("(.+(\\/|\\\\)(.+))\\.(c|h)(pp)?:([0-9]+):[0-9]+: error: (.+)");
-	std::regex fatal_error_regex = std::regex("(.+(\\/|\\\\)(.+))\\.(c|h)(pp)?:([0-9]+):[0-9]+: fatal error: (.+)");
+	std::regex error_regex = std::regex("(.+(\\\\|\\/))?(.+)\\.(c|h)(pp)?:([0-9]+):[0-9]+: error: (.+)");
+	std::regex fatal_error_regex = std::regex("(.+(\\\\|\\/))?(.+)\\.(c|h)(pp)?:([0-9]+):[0-9]+: fatal error: (.+)");
 
 	std::smatch m;
 	bool err = false;
@@ -410,7 +410,7 @@ int main(int argc, char** argv) {
 		bool found = false;
 		for (const auto& l : lines) {
 			if (l[1] == line) {
-				std::string filename = (m[1] == name) ? input_file : (m[1].str() + "." + m[4].str() + m[5].str());
+				std::string filename = (m[3] == name) ? input_file : (m[3].str() + "." + m[4].str() + m[5].str());
 				std::cout << RED << "[ERROR]: " << m[7];
 				if (m[7].str().find("which is of non-class type ‘int’") != std::string::npos) {
 					std::cout << ", did you mean i32?";
@@ -431,7 +431,7 @@ int main(int argc, char** argv) {
 			}
 		}
 		if (!found) {
-			std::cout << RED << "[ERROR]: " << m[7] << "\n\t--> " << m[1] << "." << m[4] << m[5] << ":" << m[6] << "\n\tThis error is a problem with the compiler, please run again with --keep-cpp and report the generated C++." << RESET << std::endl;
+			std::cout << RED << "[ERROR]: " << m[7] << "\n\t--> " << m[3] << "." << m[4] << m[5] << ":" << m[6] << "\n\tThis error is a problem with the compiler, please run again with --keep-cpp and report the generated C++." << RESET << std::endl;
 		}
 	} else if (std::regex_search(gcc_output, m, fatal_error_regex)) {
 		err = true;
@@ -439,7 +439,7 @@ int main(int argc, char** argv) {
 		bool found = false;
 		for (const auto& l : lines) {
 			if (l[1] == line) {
-				std::string filename = (m[1] == name) ? input_file : (m[1].str() + "." + m[4].str() + m[5].str());
+				std::string filename = (m[3] == name) ? input_file : (m[3].str() + "." + m[4].str() + m[5].str());
 				std::cout << RED << "[ERROR]: " << m[7];
 				if (m[7].str().find("which is of non-class type ‘int’") != std::string::npos) {
 					std::cout << ", did you mean i32?";
@@ -460,7 +460,7 @@ int main(int argc, char** argv) {
 			}
 		}
 		if (!found) {
-			std::cout << RED << "[ERROR]: " << m[7] << "\n\t--> " << m[1] << "." << m[4] << m[5] << ":" << m[6] << "\n\tThis error is a problem with the compiler, please run again with --keep-cpp and report the generated C++." << RESET << std::endl;
+			std::cout << RED << "[ERROR]: " << m[7] << "\n\t--> " << m[3] << "." << m[4] << m[5] << ":" << m[6] << "\n\tThis error is a problem with the compiler, please run again with --keep-cpp and report the generated C++." << RESET << std::endl;
 		}
 	} else if (gcc_output.length() > 1) {
 		std::cout << gcc_output << "\n";
