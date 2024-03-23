@@ -3,13 +3,24 @@
 i32 main() {
 
 	Window window = Window("D++ graphics test", 500, 500);
+	Circle circle = Circle(250.0f, 250.0f, 10.0f, { 255, 0, 0 }, &window);
+
+	f32 accel = 0.0;
 
 	while (!window.should_close()) {
+
+		circle.y += accel;
+		accel += 0.08;
+		if (circle.y >= 500.0f - circle.r) {
+			circle.y = 500.0f - circle.r;
+			accel = -4.0;
+		}
+
+		Vec2 pos = window.mouse_position();
+
 		window.clear({ 255, 255, 255 });
-
-		Point pos = window.mouse_position();
-		window.draw_rectangle(pos.x-50, pos.y-50, 100, 100, { 255, 0, 0 });
-
+		circle.draw();
+		window.draw_rectangle(pos.x-10, pos.y-10, 20, 20, { 0, 255, 0 });
 		window.update();
 	}
 

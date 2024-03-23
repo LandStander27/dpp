@@ -49,7 +49,9 @@ const char* default_header =
 "#include <iostream>" "\n"
 "#include <sstream>\n" "\n"
 
-"class u64;" "\n"
+"template <typename T>" "\n"
+"class Number;" "\n"
+"typedef Number<unsigned long long> u64;" "\n"
 
 "class str {" "\n"
 "	std::string val;\n" "\n"
@@ -133,7 +135,7 @@ const char* default_header =
 "		ss >> this->val;" "\n"
 "	}\n" "\n"
 
-"	inline T data() {" "\n"
+"	inline T& data() {" "\n"
 "		return this->val;" "\n"
 "	}\n" "\n"
 
@@ -147,6 +149,18 @@ const char* default_header =
 
 "	inline bool operator ==(Number other) { return this->val == other.val; }" "\n"
 "	inline bool operator ==(T other) { return this->val == other; }" "\n"
+"	inline bool operator !=(Number other) { return this->val != other.val; }" "\n"
+"	inline bool operator !=(T other) { return this->val != other; }" "\n"
+
+"	inline bool operator <(Number other) { return this->val < other.val; }" "\n"
+"	inline bool operator <(T other) { return this->val < other; }" "\n"
+"	inline bool operator >(Number other) { return this->val > other.val; }" "\n"
+"	inline bool operator >(T other) { return this->val > other; }" "\n"
+"	inline bool operator <=(Number other) { return this->val <= other.val; }" "\n"
+"	inline bool operator <=(T other) { return this->val <= other; }" "\n"
+"	inline bool operator >=(Number other) { return this->val >= other.val; }" "\n"
+"	inline bool operator >=(T other) { return this->val >= other; }" "\n"
+
 "	inline void operator =(T other) { this->val = other; }\n" "\n"
 
 "	inline void operator -=(Number other) { this->val -= other.val; }" "\n"
@@ -172,35 +186,76 @@ const char* default_header =
 
 "};\n" "\n"
 
-"class i32 : public Number<int> {" "\n"
-"public:" "\n"
-"	using Number::Number;" "\n"
-"};\n" "\n"
+"template <typename T>" "\n"
+"Number<T> operator-(T a, Number<T> b) {" "\n"
+"	return Number(a) - b;" "\n"
+"}\n" "\n"
 
-"class i64 : public Number<long long> {" "\n"
-"public:" "\n"
-"	using Number::Number;" "\n"
-"};\n" "\n"
+"template <typename T>" "\n"
+"Number<T> operator+(T a, Number<T> b) {" "\n"
+"	return Number(a) + b;" "\n"
+"}\n" "\n"
 
-"class u32 : public Number<unsigned int> {" "\n"
-"public:" "\n"
-"	using Number::Number;" "\n"
-"};\n" "\n"
+"template <typename T>" "\n"
+"Number<T> operator/(T a, Number<T> b) {" "\n"
+"	return Number(a) / b;" "\n"
+"}\n" "\n"
 
-"class u64 : public Number<unsigned long long> {" "\n"
-"public:" "\n"
-"	using Number::Number;" "\n"
-"};\n" "\n"
+"template <typename T>" "\n"
+"Number<T> operator*(T a, Number<T> b) {" "\n"
+"	return Number(a) * b;" "\n"
+"}\n" "\n"
 
-"class f32 : public Number<float> {" "\n"
-"public:" "\n"
-"	using Number::Number;" "\n"
-"};\n" "\n"
+"template <typename T>" "\n"
+"Number<T> operator<(T a, Number<T> b) {" "\n"
+"	return Number(a) < b;" "\n"
+"}\n" "\n"
 
-"class f64 : public Number<double> {" "\n"
-"public:" "\n"
-"	using Number::Number;" "\n"
-"};\n" "\n"
+"template <typename T>" "\n"
+"Number<T> operator>(T a, Number<T> b) {" "\n"
+"	return Number(a) > b;" "\n"
+"}\n" "\n"
+
+"template <typename T>" "\n"
+"std::string to_string(Number<T>& n) {" "\n"
+"	return std::to_string(n.data());" "\n"
+"}\n" "\n"
+// "class i32 : public Number<int> {" "\n"
+// "public:" "\n"
+// "	using Number::Number;" "\n"
+// "};\n" "\n"
+
+// "class i64 : public Number<long long> {" "\n"
+// "public:" "\n"
+// "	using Number::Number;" "\n"
+// "};\n" "\n"
+
+// "class u32 : public Number<unsigned int> {" "\n"
+// "public:" "\n"
+// "	using Number::Number;" "\n"
+// "};\n" "\n"
+
+// "class u64 : public Number<unsigned long long> {" "\n"
+// "public:" "\n"
+// "	using Number::Number;" "\n"
+// "};\n" "\n"
+
+// "class f32 : public Number<float> {" "\n"
+// "public:" "\n"
+// "	using Number::Number;" "\n"
+// "};\n" "\n"
+
+// "class f64 : public Number<double> {" "\n"
+// "public:" "\n"
+// "	using Number::Number;" "\n"
+// "};\n" "\n"
+
+"typedef Number<int> i32;" "\n"
+"typedef Number<long long> i64;" "\n"
+"typedef Number<unsigned int> u32;" "\n"
+"typedef Number<unsigned long long> u64;" "\n"
+"typedef Number<float> f32;" "\n"
+"typedef Number<double> f64;\n" "\n"
 
 "template <typename T>" "\n"
 "static inline void println(T s) { std::cout << T(s).display() << std::endl; }" "\n"
@@ -213,4 +268,5 @@ const char* default_header =
 "template <typename T = str>" "\n"
 "T scan() { std::string t; std::getline(std::cin, t); return T(t); }\n" "\n"
 
-"[[noreturn]] void panic(str msg, int line) { std::cout << \"\\x1b[31m\" << \"[PANIC]: \" << msg << \"\\n\\t--> Line \" << line << \"\\x1b[0m\" << std::endl; exit(101); }\n" "\n";
+"[[noreturn]] void panic(str msg) { std::cout << \"\\x1b[31m\" << \"[PANIC]: \" << msg << \"\\x1b[0m\" << std::endl; exit(101); }" "\n"
+"[[noreturn]] void panic(str msg, int line, str file) { std::cout << \"\\x1b[31m\" << \"[PANIC]: \" << msg << \"\\n\\t--> \" << file << \":\" << line << \"\\x1b[0m\" << std::endl; exit(101); }\n" "\n";

@@ -15,7 +15,7 @@ const std::string vec_impl =
 "	Vec(T val, u64 len) {" "\n"
 "		this->v = std::vector<T>();" "\n"
 "		this->v.reserve(len);" "\n"
-"		for (int i = 0; i < len; i++) {" "\n"
+"		for (u64 i = 0; i < len; i++) {" "\n"
 "			this->v.push_back(val);" "\n"
 "		}" "\n"
 "	}" "\n"
@@ -25,7 +25,7 @@ const std::string vec_impl =
 "	std::string display() {" "\n"
 "		std::stringstream os;" "\n"
 "		os << \"{ \";" "\n"
-"		for (int i = 0; i < this->len(); i++) {" "\n"
+"		for (u64 i = 0; i < this->len(); i++) {" "\n"
 "			os << (*this)[i].display();" "\n"
 "			if (i < this->len() - 1) {" "\n"
 "				os << \", \";" "\n"
@@ -35,7 +35,7 @@ const std::string vec_impl =
 "		return os.str();" "\n"
 "	}" "\n"
 "	bool contains(T val) {" "\n"
-"		for (int i = 0; i < this->len(); i++) {" "\n"
+"		for (u64 i = 0; i < this->len(); i++) {" "\n"
 "			if (this->v[i] == val) {" "\n"
 "				return true;" "\n"
 "			}" "\n"
@@ -45,16 +45,16 @@ const std::string vec_impl =
 "	void operator<<(T t) {" "\n"
 "		this->v.push_back(t);" "\n"
 "	}" "\n"
-"	template<typename U>" "\n"
-"	T& operator[](U i) {" "\n"
+
+"	T& operator[](u64 i) {" "\n"
 "		if (i >= this->len()) {" "\n"
-"			panic(\"Index out of bounds: len is \" + this->len().to_string() + \", index is \" + std::to_string(i));" "\n"
+"			panic(\"Index out of bounds: len is \" + this->len().to_string() + \", index is \" + i.to_string());" "\n"
 "		}" "\n"
-"		return this->v[i];" "\n"
+"		return this->v[i.data()];" "\n"
 "	}\n" "\n"
 
 "	T* begin() { return &(this->v[0]); }" "\n"
-"	T* end() { return &(this->v[this->len()]); }" "\n"
+"	T* end() { return &(this->v[this->len().data()]); }" "\n"
 "};\n" "\n";
 
 // "template<typename T>" "\n"
@@ -225,7 +225,7 @@ std::tuple<std::string, std::vector<std::vector<unsigned long long>>> translate(
 				output << n;
 			} else if (std::string n = std::regex_replace(ss.str(), range_for, "for ($1 $2 : $3) $4\n"); n != ss.str()) {
 				output << n;
-			} else if (std::string n = std::regex_replace(ss.str(), panic_call, "panic(\"$1\", " + std::to_string(current_line) + ");\n"); n != ss.str()) {
+			} else if (std::string n = std::regex_replace(ss.str(), panic_call, "panic(\"$1\", " + std::to_string(current_line) + ", \"" + std::filesystem::path(input_file).filename().string() + "\");\n"); n != ss.str()) {
 				output << n;
 			} else if (std::string n = std::regex_replace(ss.str(), cpp_include, "#include $1$2$3\n"); n != ss.str()) {
 				output << n;
@@ -237,6 +237,9 @@ std::tuple<std::string, std::vector<std::vector<unsigned long long>>> translate(
 				#endif
 					if (entry.path().filename() == n) {
 						auto [translated, other_lines] = translate(entry.path().string(), parser, false);
+						if (translated == "err\r") {
+							return { translated, other_lines };
+						}
 						output << translated << '\n';
 						break;
 					}
@@ -263,7 +266,7 @@ std::tuple<std::string, std::vector<std::vector<unsigned long long>>> translate(
 						if (format.has_value()) {
 							output << format.value() << (i == quotes.size()-1 ? ss.str().substr(quotes[i+1]+1) : ss.str().substr(quotes[i+1]+1, quotes[i+2]-quotes[i+1]-1)) << '\n';
 						} else {
-							std::cout << RED << '[' << "ERROR" << "] No ending bracket for format string\n " << RESET << "--> " << input_file << ":" << current_line << "\n\t" << ss.str().substr(quotes[i], quotes[i+1]-quotes[i]+1) << std::endl;
+							std::cout << RED << '[' << "ERROR" << "] No ending bracket for format string\n\t" << "--> " << input_file << ":" << current_line << "\n\t" << ss.str().substr(quotes[i], quotes[i+1]-quotes[i]+1) << RESET << std::endl;
 							return std::tuple("err\r", lines);
 						}
 					}
@@ -334,6 +337,9 @@ int main(int argc, char** argv) {
 
 	std::ofstream file_out = std::ofstream(name + ".cpp");
 	auto [output, lines] = translate(input_file, parser, true);
+	if (output == "err\r") {
+		return -1;
+	}
 	file_out << output;
 	file_out.close();
 

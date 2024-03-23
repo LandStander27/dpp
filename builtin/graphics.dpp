@@ -1,0 +1,202 @@
+#define GLAD_GL_IMPLEMENTATION
+#cpp-include <glad/gl.h>
+#define GLFW_INCLUDE_NONE
+#cpp-include <GLFW/glfw3.h>
+
+#cpp-include <cmath>
+
+struct Vec2 {
+	f32 x, y;
+	str display() {
+		return "{x}, {y}";
+	}
+};
+
+struct Color {
+	f32 r, g, b;
+};
+
+class Window {
+
+	GLFWwindow* data;
+	i32 width;
+	i32 height;
+
+	inline Vec2 to_gl(Vec2 p) {
+		f32 x = (p.x / f32(this->width) - 0.5f) * 2.0f;
+		f32 y = (p.y / f32(this->height) - 0.5f) * -2.0f;
+		return { x, y };
+	}
+
+	inline Vec2 to_gl_dimensions(Vec2 p) {
+		f32 w = (p.x / (f32(this->width) / 2.0f));
+		f32 h = (p.y / (f32(this->height) / 2.0f));
+		return { w, h };
+	}
+
+public:
+
+	Vec2 get_dimensions() {
+		return { f32(this->width), f32(this->height) };
+	}
+
+	void draw_rectangle(f32 x, f32 y, f32 w, f32 h, Color color) {
+
+		Vec2 new_point = this->to_gl({ x, y });
+		Vec2 new_dim = this->to_gl_dimensions({ w, h });
+
+		glBegin(GL_POLYGON);
+
+		glColor3f(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f);
+		glVertex2f((new_point.x + new_dim.x).data(), (new_point.y - new_dim.y).data());
+		glVertex2f(new_point.x.data(), (new_point.y - new_dim.y).data());
+		glVertex2f(new_point.x.data(), new_point.y.data());
+		glVertex2f((new_point.x + new_dim.x).data(), new_point.y.data());
+
+		glEnd();
+	}
+
+	void draw_pixel(f32 x, f32 y, Color color) {
+
+		Vec2 new_point = this->to_gl({ x, y });
+
+		glBegin(GL_POINTS);
+		glColor3f(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f);
+		glVertex2f(new_point.x.data(), new_point.y.data());
+		glEnd();
+	}
+
+	void draw_circle(f32 x, f32 y, f32 r, Color color) {
+		Vec2 center = this->to_gl({ x, y });
+
+		glBegin(GL_POLYGON);
+		glColor3f(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f);
+		const i32 vertices = 20;
+
+		for (i32 i in 0..vertices) {
+			f32 angle = f32(2.0) * f32(3.1415926) * f32(i) / f32(vertices);
+
+			f32 x_offset = r * f32(std::cos(angle.data()));
+			f32 y_offset = r * f32(std::sin(angle.data()));
+
+			Vec2 p = this->to_gl_dimensions({ x_offset, y_offset });
+
+			glVertex2f((center.x+p.x).data(), (center.y+p.y).data());
+		}
+
+		glEnd();
+	}
+
+	void draw_circle_lines(f32 x, f32 y, f32 r, Color color) {
+		Vec2 center = this->to_gl({ x, y });
+
+		glBegin(GL_LINES);
+		glColor3f(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f);
+		const i32 vertices = 20;
+
+		for (i32 i in 0..vertices) {
+			f32 angle = f32(2.0) * f32(3.1415926) * f32(i) / f32(vertices);
+
+			f32 x_offset = r * f32(std::cos(angle.data()));
+			f32 y_offset = r * f32(std::sin(angle.data()));
+
+			Vec2 p = this->to_gl_dimensions({ x_offset, y_offset });
+
+			glVertex2f((center.x+p.x).data(), (center.y+p.y).data());
+		}
+
+		glEnd();
+	}
+
+	bool should_close() {
+		return glfwWindowShouldClose(this->data);
+	}
+
+	Vec2 mouse_position() {
+		double x, y;
+		glfwGetCursorPos(this->data, &x, &y);
+		return { f32(x), f32(y) };
+	}
+
+	void update() {
+		glFlush();
+
+		glfwSwapBuffers(this->data);
+		glfwPollEvents();
+	}
+
+	void clear() {
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
+
+	void enable_this_context() {
+		glfwMakeContextCurrent(this->data);
+	}
+
+	void clear(Color color) {
+		glClearColor(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
+
+	Window(str title, i32 width, i32 height) {
+		if (!glfwInit()) {
+			panic("Could not initialize GLFW");
+		}
+		this->width = width;
+		this->height = height;
+
+		this->data = glfwCreateWindow(width.data(), height.data(), title.c_str(), NULL, NULL);
+		if (!this->data) {
+			panic("Could not create window");
+		}
+
+		glfwMakeContextCurrent(this->data);
+		gladLoadGL(glfwGetProcAddress);
+
+		glClearColor(0.0, 0.0, 0.0, 1.0);
+		glShadeModel(GL_FLAT);
+	}
+
+	~Window() {
+		glfwDestroyWindow(this->data);
+	}
+
+};
+
+class Object {
+public:
+	f32 x, y;
+	Color color;
+	Window* window;
+};
+
+class Rect : public Object {
+public:
+	f32 w, h;
+	void draw() {
+		this->window->draw_rectangle(this->x, this->y, this->w, this->h, this->color);
+	}
+	Rect(f32 x, f32 y, f32 w, f32 h, Color color, Window* window) {
+		this->x = x;
+		this->y = y;
+		this->w = w;
+		this->h = h;
+		this->color = color;
+		this->window = window;
+	}
+};
+
+class Circle : public Object {
+public:
+	f32 r;
+	void draw() {
+		this->window->draw_circle(this->x, this->y, this->r, this->color);
+	}
+	Circle(f32 x, f32 y, f32 r, Color color, Window* window) {
+		this->x = x;
+		this->y = y;
+		this->r = r;
+		this->color = color;
+		this->window = window;
+	}
+};
